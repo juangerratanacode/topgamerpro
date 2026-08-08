@@ -3,21 +3,34 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-// Los cambios del admin ya se guardan solos en localStorage apenas los
-// escribes (no hay riesgo de perderlos), pero eso no se siente igual que
-// un botón real de "Guardar". Este componente da esa confirmación visual
-// explícita que pediste, sin cambiar cómo se persisten los datos.
-export default function SaveBar() {
+interface SaveBarProps {
+  onSave?: () => Promise<boolean> | boolean;
+  saving?: boolean;
+  error?: boolean;
+}
+
+// Botón real de guardar: llama a onSave (que persiste en Supabase) y
+// muestra el resultado. Antes esto solo mostraba una animación sin
+// guardar nada de verdad — cada cambio se mandaba solo, lo que causaba
+// carreras que duplicaban datos. Ahora el guardado es explícito.
+export default function SaveBar({ onSave, saving, error }: SaveBarProps) {
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  function handleSave() {
-    setSavedAt(Date.now());
-    setTimeout(() => setSavedAt(null), 2200);
+  async function handleSave() {
+    if (!onSave) return;
+    const ok = await onSave();
+    if (ok) {
+      setSavedAt(Date.now());
+      setTimeout(() => setSavedAt(null), 2200);
+    }
   }
 
   return (
     <div className="sticky bottom-4 z-30 flex justify-center pointer-events-none">
       <div className="pointer-events-auto flex items-center gap-3 bg-brand-surface border border-brand-border rounded-full shadow-2xl shadow-black/40 px-2 py-2">
+        {error && (
+          <span className="text-red-400 text-xs font-semibold px-2">No se pudo guardar</span>
+        )}
         <AnimatePresence mode="wait">
           {savedAt ? (
             <motion.span
@@ -43,9 +56,10 @@ export default function SaveBar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={handleSave}
-              className="bg-brand-primary hover:bg-brand-primaryDark text-white font-bold text-sm px-6 py-2.5 rounded-full transition-colors"
+              disabled={saving}
+              className="bg-brand-primary hover:bg-brand-primaryDark disabled:opacity-50 text-white font-bold text-sm px-6 py-2.5 rounded-full transition-colors"
             >
-              Guardar cambios
+              {saving ? "Guardando..." : "Guardar cambios"}
             </motion.button>
           )}
         </AnimatePresence>

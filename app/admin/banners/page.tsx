@@ -6,7 +6,7 @@ import { fileToCompressedDataUrl } from "@/lib/image";
 import SaveBar from "@/components/SaveBar";
 
 export default function BannersPage() {
-  const { banners, hydrated, saveError, add, update, remove, moveUp, moveDown } = useBanners();
+  const { banners, hydrated, saving, saveError, save, add, update, remove, moveUp, moveDown } = useBanners();
 
   if (!hydrated) {
     return <div className="max-w-4xl mx-auto px-4 py-10 text-brand-textMuted">Cargando...</div>;
@@ -24,8 +24,7 @@ export default function BannersPage() {
 
       {saveError && (
         <div className="mb-6 bg-red-500/10 border border-red-500/40 text-red-300 text-sm rounded-xl p-4">
-          No se pudo guardar el último cambio: el almacenamiento del navegador está lleno. Prueba
-          eliminando alguna portada vieja o usando una imagen más liviana.
+          No se pudo guardar el último cambio. Revisa tu conexión e intenta de nuevo.
         </div>
       )}
 
@@ -65,7 +64,7 @@ export default function BannersPage() {
         + Agregar portada
       </button>
 
-      <SaveBar />
+      <SaveBar onSave={save} saving={saving} error={saveError} />
     </div>
   );
 }

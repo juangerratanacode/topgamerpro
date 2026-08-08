@@ -17,6 +17,9 @@ export default function AdminPage() {
   const {
     products,
     hydrated,
+    saving,
+    saveError,
+    save,
     updateProduct,
     updateVariation,
     addVariation,
@@ -27,6 +30,8 @@ export default function AdminPage() {
     addProduct,
     deleteProduct,
     resetToDefaults,
+    moveProductUp,
+    moveProductDown,
   } = useAdminProducts();
   const { rates, setRate } = useCurrency();
 
@@ -62,8 +67,8 @@ export default function AdminPage() {
         </div>
       </div>
       <p className="text-sm text-brand-textMuted mb-6">
-        Los cambios se guardan en tu navegador (localStorage) mientras no tengamos Supabase
-        conectado. Cuando esté listo, esto va a guardar directo en la base de datos real.
+        Los cambios quedan solo en esta pantalla hasta que tocas "Guardar cambios" abajo — ahí se
+        escriben de verdad en la base de datos.
       </p>
 
       <div className="bg-brand-surface border border-brand-border rounded-2xl p-4 mb-6">
@@ -93,29 +98,77 @@ export default function AdminPage() {
       </div>
 
       <div className="space-y-3">
-        {products.map((product) => {
+        {products.map((product, productIndex) => {
           const isOpen = expandedId === product.id;
           return (
             <div key={product.id} className="bg-brand-surface border border-brand-border rounded-2xl overflow-hidden">
-              <button
-                onClick={() => setExpandedId(isOpen ? null : product.id)}
-                className="w-full flex items-center gap-4 p-4 text-left"
-              >
-                <div className="w-14 h-14 rounded-lg overflow-hidden relative shrink-0 bg-brand-surfaceLight">
-                  {product.imageUrl && (
-                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-                  )}
+              <div className="w-full flex items-center gap-3 p-4">
+                <div className="flex flex-col gap-0.5 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveProductUp(product.id);
+                    }}
+                    disabled={productIndex === 0}
+                    className="w-6 h-6 rounded border border-brand-border text-brand-textMuted hover:text-white disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center text-xs"
+                    aria-label="Subir"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveProductDown(product.id);
+                    }}
+                    disabled={productIndex === products.length - 1}
+                    className="w-6 h-6 rounded border border-brand-border text-brand-textMuted hover:text-white disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center text-xs"
+                    aria-label="Bajar"
+                  >
+                    ▼
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <div className="font-bold">{product.name}</div>
-                  <div className="text-xs text-brand-textMuted">
-                    {product.variations.length} paquetes · {product.fields.length} campos
+
+                <button
+                  onClick={() => setExpandedId(isOpen ? null : product.id)}
+                  className="flex-1 flex items-center gap-4 text-left min-w-0"
+                >
+                  <label
+                    className="relative w-14 h-14 shrink-0 rounded-lg overflow-hidden bg-brand-surfaceLight cursor-pointer group"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {product.imageUrl && (
+                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                    )}
+                    <span className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                      Cambiar
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const dataUrl = await fileToCompressedDataUrl(file, {
+                          maxWidth: 800,
+                          maxHeight: 800,
+                          quality: 0.85,
+                        });
+                        updateProduct(product.id, { imageUrl: dataUrl });
+                      }}
+                    />
+                  </label>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold truncate">{product.name}</div>
+                    <div className="text-xs text-brand-textMuted">
+                      {product.variations.length} paquetes · {product.fields.length} campos
+                    </div>
                   </div>
-                </div>
-                <span className={clsx("transition-transform text-brand-textMuted", isOpen && "rotate-180")}>
-                  ▾
-                </span>
-              </button>
+                  <span className={clsx("transition-transform text-brand-textMuted shrink-0", isOpen && "rotate-180")}>
+                    ▾
+                  </span>
+                </button>
+              </div>
 
               {isOpen && (
                 <div className="border-t border-brand-border p-4 space-y-6">
@@ -387,7 +440,7 @@ export default function AdminPage() {
         })}
       </div>
 
-      <SaveBar />
+      <SaveBar onSave={save} saving={saving} error={saveError} />
     </div>
   );
 }

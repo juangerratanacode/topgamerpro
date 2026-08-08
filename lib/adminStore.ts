@@ -8,37 +8,117 @@
 import { useEffect, useState, useCallback } from "react";
 import { mockProducts as defaultProducts } from "./mockProducts";
 import type { Product, ProductVariation, GameFieldDef } from "./types";
-import { safeLocalStorageSet } from "./image";
+import { supabase } from "./supabaseClient";
+import { adminFetch } from "./adminFetch";
 
-const STORAGE_KEY = "pitanga_admin_products_v1";
+// Convierte las filas de Supabase (products + product_variations) al mismo
+// shape que ya usaba el resto del código con mockProducts.ts, para no tener
+// que tocar los componentes que consumen useStorefrontProducts().
+export async function fetchProductsFromSupabase(): Promise<Product[] | null> {
+  if (!supabase) return null;
 
-function loadProducts(): Product[] {
-  if (typeof window === "undefined") return defaultProducts;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaultProducts;
+  const { data: rows, error } = await supabase
+    .from("products")
+    .select("*, product_variations(*)")
+    .order("sort_order", { ascending: true })
+    .order("sort_order", { referencedTable: "product_variations", ascending: true });
+
+  if (error || !rows) {
+    console.error("Error cargando productos de Supabase:", error?.message);
+    return null;
+  }
+
+  return rows.map((row: any) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    description: row.description ?? undefined,
+    imageUrl: row.image_url ?? undefined,
+    category: row.category,
+    genre: row.genre,
+    requiresActivisionLink: row.requires_activision_link ?? undefined,
+    requiresKonamiId: row.requires_konami_id ?? undefined,
+    fields: row.fields ?? [],
+    variations: (row.product_variations ?? []).map((v: any) => ({
+      id: v.id,
+      label: v.label,
+      priceUsd: Number(v.price_usd),
+      priceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined,
+      icon: v.icon,
+      iconImageUrl: v.icon_image_url ?? undefined,
+      reloadlyProductId: v.reloadly_product_id ?? undefined,
+      fieldsOverride: v.fields_override ?? undefined,
+    })),
+  }));
+}
+
+async function loadProductsFromApi(): Promise<Product[]> {
   try {
-    return JSON.parse(raw);
+    const res = await adminFetch("/api/admin/products", { cache: "no-store" });
+    if (!res.ok) return defaultProducts;
+    const data = await res.json();
+    return Array.isArray(data.products) && data.products.length > 0 ? data.products : defaultProducts;
   } catch {
     return defaultProducts;
   }
 }
 
-function saveProducts(products: Product[]): boolean {
-  return safeLocalStorageSet(STORAGE_KEY, JSON.stringify(products));
+async function persistProductsToApi(products: Product[]): Promise<boolean> {
+  try {
+    const res = await adminFetch("/api/admin/products", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ products }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export function useAdminProducts() {
   const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [hydrated, setHydrated] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
-    setProducts(loadProducts());
-    setHydrated(true);
+    loadProductsFromApi().then((p) => {
+      setProducts(p);
+      setHydrated(true);
+    });
   }, []);
 
-  useEffect(() => {
-    if (hydrated) saveProducts(products);
-  }, [products, hydrated]);
+  // Guardado EXPLÍCITO (botón "Guardar cambios"), no automático en cada
+  // tecla — guardar en cada cambio causaba llamadas simultáneas al mismo
+  // endpoint que se pisaban entre sí y duplicaban paquetes en la base.
+  const save = useCallback(async () => {
+    setSaving(true);
+    const ok = await persistProductsToApi(products);
+    setSaveError(!ok);
+    setSaving(false);
+    return ok;
+  }, [products]);
+
+  const moveProductUp = useCallback((id: string) => {
+    setProducts((prev) => {
+      const i = prev.findIndex((p) => p.id === id);
+      if (i <= 0) return prev;
+      const next = [...prev];
+      [next[i - 1], next[i]] = [next[i], next[i - 1]];
+      return next;
+    });
+  }, []);
+
+  const moveProductDown = useCallback((id: string) => {
+    setProducts((prev) => {
+      const i = prev.findIndex((p) => p.id === id);
+      if (i === -1 || i >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[i + 1], next[i]] = [next[i], next[i + 1]];
+      return next;
+    });
+  }, []);
 
   const updateProduct = useCallback((id: string, patch: Partial<Product>) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -169,6 +249,9 @@ export function useAdminProducts() {
   return {
     products,
     hydrated,
+    saving,
+    saveError,
+    save,
     updateProduct,
     updateVariation,
     addVariation,
@@ -179,6 +262,8 @@ export function useAdminProducts() {
     addProduct,
     deleteProduct,
     resetToDefaults,
+    moveProductUp,
+    moveProductDown,
   };
 }
 
@@ -191,15 +276,19 @@ export function useStorefrontProducts() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setProducts(loadProducts());
-    setHydrated(true);
+    let cancelled = false;
 
-    // si el admin edita en otra pestaña, esta se actualiza sola
-    function onStorage(e: StorageEvent) {
-      if (e.key === STORAGE_KEY) setProducts(loadProducts());
+    async function load() {
+      const fromSupabase = await fetchProductsFromSupabase();
+      if (cancelled) return;
+      setProducts(fromSupabase && fromSupabase.length > 0 ? fromSupabase : defaultProducts);
+      setHydrated(true);
     }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { products, hydrated };

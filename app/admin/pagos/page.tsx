@@ -4,7 +4,7 @@ import { usePaymentSettings } from "@/lib/paymentSettingsStore";
 import SaveBar from "@/components/SaveBar";
 
 export default function PagosPage() {
-  const { settings, hydrated, update } = usePaymentSettings();
+  const { settings, hydrated, saving, saveError, save, update } = usePaymentSettings();
 
   if (!hydrated) {
     return <div className="max-w-3xl mx-auto px-4 py-10 text-brand-textMuted">Cargando...</div>;
@@ -82,7 +82,7 @@ export default function PagosPage() {
         </div>
       </div>
 
-      <SaveBar />
+      <SaveBar onSave={save} saving={saving} error={saveError} />
     </div>
   );
 }

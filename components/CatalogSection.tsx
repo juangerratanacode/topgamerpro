@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStorefrontProducts } from "@/lib/adminStore";
-import { GENRE_LABELS, type GameGenre } from "@/lib/types";
+import { GENRE_LABELS, type GameGenre, type Product } from "@/lib/types";
 import ProductCard from "./ProductCard";
 import CatalogSkeleton from "./CatalogSkeleton";
 import clsx from "clsx";
@@ -17,21 +17,47 @@ function normalize(s: string) {
     .replace(/[̀-ͯ]/g, ""); // quita acentos para que "roblox"/"róblox" den igual
 }
 
-export default function CatalogSection() {
-  const { products, hydrated } = useStorefrontProducts();
+interface CatalogSectionProps {
+  products?: Product[];
+  hydrated?: boolean;
+}
+
+export default function CatalogSection({ products: productsProp, hydrated: hydratedProp }: CatalogSectionProps = {}) {
+  // Igual patrón que HeroSlider: si el home ya trajo los datos
+  // sincronizados, los usamos; si no, se autoabastece.
+  const own = useStorefrontProducts();
+  const products = productsProp ?? own.products;
+  const hydrated = hydratedProp ?? own.hydrated;
   const [active, setActive] = useState<GameGenre | "all">("all");
   const searchParams = useSearchParams();
   const query = normalize(searchParams.get("buscar") ?? "");
+
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const [atScrollEnd, setAtScrollEnd] = useState(false);
+
+  function handlePillsScroll() {
+    const el = pillsRef.current;
+    if (!el) return;
+    // -4px de margen para no depender de un píxel exacto (redondeos de zoom/DPI)
+    setAtScrollEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+  }
 
   const availableGenres = useMemo(() => {
     const set = new Set(products.map((p) => p.genre));
     return (Object.keys(GENRE_LABELS) as GameGenre[]).filter((g) => set.has(g));
   }, [products]);
 
+  // Si las categorías ya entran todas sin necesitar scroll (pantalla ancha,
+  // o pocas categorías), la flecha no debe aparecer nunca.
+  useEffect(() => {
+    handlePillsScroll();
+  }, [availableGenres]);
+
   const filtered = useMemo(() => {
-    let list = active === "all" ? products : products.filter((p) => p.genre === active);
-    if (query) list = list.filter((p) => normalize(p.name).includes(query));
-    return list;
+    // Si hay búsqueda, ignora la categoría activa: buscar debe encontrar
+    // el juego sin importar en qué filtro esté parado el usuario.
+    if (query) return products.filter((p) => normalize(p.name).includes(query));
+    return active === "all" ? products : products.filter((p) => p.genre === active);
   }, [active, products, query]);
 
   // Reserva (aprox.) la misma altura que el contenido real en vez de
@@ -57,22 +83,45 @@ export default function CatalogSection() {
         </h2>
       </div>
 
-      <div className="flex sm:flex-wrap gap-2.5 mb-8 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 sm:pb-0 scrollbar-none snap-x snap-mandatory sm:snap-none">
-        <CategoryPill
-          label="Todos"
-          genre="all"
-          active={active === "all"}
-          onClick={() => setActive("all")}
-        />
-        {availableGenres.map((g) => (
+      <div className="relative mb-8">
+        <div
+          ref={pillsRef}
+          onScroll={handlePillsScroll}
+          className="flex flex-nowrap sm:flex-wrap gap-2.5 overflow-x-auto sm:overflow-visible pb-1 pr-10 sm:pr-0 sm:pb-0 scrollbar-none snap-x snap-mandatory sm:snap-none"
+        >
           <CategoryPill
-            key={g}
-            label={GENRE_LABELS[g]}
-            genre={g}
-            active={active === g}
-            onClick={() => setActive(g)}
+            label="Todos"
+            genre="all"
+            active={active === "all"}
+            onClick={() => setActive("all")}
           />
-        ))}
+          {availableGenres.map((g) => (
+            <CategoryPill
+              key={g}
+              label={GENRE_LABELS[g]}
+              genre={g}
+              active={active === g}
+              onClick={() => setActive(g)}
+            />
+          ))}
+        </div>
+        {/* Pista visual de que el filtro se puede seguir deslizando en mobile —
+            un degradado solo no se notaba (el fondo ya es oscuro de por sí),
+            así que sumamos una flecha que rebota. Desaparece al llegar al final. */}
+        {!atScrollEnd && (
+          <div className="sm:hidden pointer-events-none absolute top-0 right-0 bottom-1 w-12 bg-gradient-to-l from-brand-bg via-brand-bg/80 to-transparent flex items-center justify-end pr-1">
+            <motion.svg
+              animate={{ x: [0, 4, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              className="w-4 h-4 text-brand-textMuted"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </motion.svg>
+          </div>
+        )}
       </div>
 
       <AnimatePresence mode="wait">

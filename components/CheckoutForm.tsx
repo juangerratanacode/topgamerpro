@@ -7,7 +7,7 @@ import { usePaymentSettings } from "@/lib/paymentSettingsStore";
 import { getCartTotalForMethod } from "@/lib/pricing";
 import { validatePaymentReference } from "@/lib/validation";
 import { buildWhatsAppMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
-import { saveOrder, fileToDataUrl } from "@/lib/ordersStore";
+import { fileToDataUrl } from "@/lib/ordersStore";
 import { useCurrency, CURRENCY_META as CURRENCY_DISPLAY_META } from "@/lib/currencyStore";
 import PhoneInput, { isPhoneValid, formatPhoneE164, type PhoneValue } from "@/components/PhoneInput";
 import type { Currency, PaymentMethodId } from "@/lib/types";
@@ -97,22 +97,12 @@ export default function CheckoutForm() {
           customer,
           items,
           currency,
-          payment: { method, reference, receiptUrl: "pendiente-supabase-storage" },
+          payment: { method, reference, receiptDataUrl },
+          totalUsd: total,
         }),
       });
       const data = await res.json();
       const orderId = data.orderId ?? `TEMP-${Date.now()}`;
-
-      saveOrder({
-        id: orderId,
-        createdAt: new Date().toISOString(),
-        customer,
-        items,
-        currency,
-        payment: { method, reference, receiptDataUrl },
-        totalUsd: total,
-        status: "pendiente",
-      });
 
       const message = buildWhatsAppMessage(
         customer,

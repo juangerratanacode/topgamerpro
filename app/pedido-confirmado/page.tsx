@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function PedidoConfirmadoPage() {
+function PedidoConfirmadoContent() {
   const params = useSearchParams();
   const orderId = params.get("orderId") ?? "";
 
@@ -31,5 +32,13 @@ export default function PedidoConfirmadoPage() {
         Volver a la tienda
       </Link>
     </div>
+  );
+}
+
+export default function PedidoConfirmadoPage() {
+  return (
+    <Suspense fallback={null}>
+      <PedidoConfirmadoContent />
+    </Suspense>
   );
 }

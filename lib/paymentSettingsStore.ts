@@ -1,84 +1,78 @@
 "use client";
 
-// Datos de las cuentas de cobro (Pago Móvil, Binance, Bancolombia, PayPal),
-// editables desde /admin/pagos. Viven en localStorage mientras no
-// conectemos Supabase, con los mismos valores por defecto que antes vivían
-// hardcodeados (o por variable de entorno) en constants.ts.
+// Datos de las cuentas de cobro (Pago Móvil, Binance, Bancolombia, PayPal).
+// Antes vivían en localStorage; ahora se leen/escriben en la tabla
+// `payment_settings` de Supabase vía /api/admin/payment-settings.
 
 import { useCallback, useEffect, useState } from "react";
+import { adminFetch } from "./adminFetch";
 
 export interface PaymentSettings {
   pagoMovil: { banco: string; telefono: string; cedula: string };
   binance: { cuenta: string };
   bancolombia: { cuenta: string };
-  paypal: {
-    correo: string; // se muestra al cliente como referencia
-    paypalMeUser: string; // usuario de paypal.me, para el botón de pago directo (sin "paypal.me/")
-  };
+  paypal: { correo: string; paypalMeUser: string };
 }
 
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
-  pagoMovil: {
-    banco: "Banesco (0134)",
-    telefono: "0412-3542332",
-    cedula: "V-27894619",
-  },
-  binance: {
-    cuenta: "correo@binance.com",
-  },
-  bancolombia: {
-    cuenta: "Ahorros 240-000004-26",
-  },
-  paypal: {
-    correo: "pagos@novatop.com",
-    paypalMeUser: "novatoprecargas",
-  },
+  pagoMovil: { banco: "Banesco (0134)", telefono: "0412-3542332", cedula: "V-27894619" },
+  binance: { cuenta: "correo@binance.com" },
+  bancolombia: { cuenta: "Ahorros 240-000004-26" },
+  paypal: { correo: "pagos@novatop.com", paypalMeUser: "novatoprecargas" },
 };
 
-const STORAGE_KEY = "pitanga_payment_settings_v1";
-
-function load(): PaymentSettings {
-  if (typeof window === "undefined") return DEFAULT_PAYMENT_SETTINGS;
+async function fetchSettings(): Promise<PaymentSettings> {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_PAYMENT_SETTINGS;
-    const parsed = JSON.parse(raw);
-    return {
-      pagoMovil: { ...DEFAULT_PAYMENT_SETTINGS.pagoMovil, ...parsed.pagoMovil },
-      binance: { ...DEFAULT_PAYMENT_SETTINGS.binance, ...parsed.binance },
-      bancolombia: { ...DEFAULT_PAYMENT_SETTINGS.bancolombia, ...parsed.bancolombia },
-      paypal: { ...DEFAULT_PAYMENT_SETTINGS.paypal, ...parsed.paypal },
-    };
+    const res = await fetch("/api/admin/payment-settings", { cache: "no-store" });
+    if (!res.ok) return DEFAULT_PAYMENT_SETTINGS;
+    const data = await res.json();
+    return data.settings ?? DEFAULT_PAYMENT_SETTINGS;
   } catch {
     return DEFAULT_PAYMENT_SETTINGS;
   }
 }
 
-function save(settings: PaymentSettings) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+async function persistSettings(settings: PaymentSettings): Promise<boolean> {
+  try {
+    const res = await adminFetch("/api/admin/payment-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export function usePaymentSettings() {
   const [settings, setSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
-    setSettings(load());
-    setHydrated(true);
+    fetchSettings().then((s) => {
+      setSettings(s);
+      setHydrated(true);
+    });
   }, []);
 
-  useEffect(() => {
-    if (hydrated) save(settings);
-  }, [settings, hydrated]);
+  const save = useCallback(async () => {
+    setSaving(true);
+    const ok = await persistSettings(settings);
+    setSaveError(!ok);
+    setSaving(false);
+    return ok;
+  }, [settings]);
 
   const update = useCallback(<K extends keyof PaymentSettings>(key: K, patch: Partial<PaymentSettings[K]>) => {
     setSettings((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   }, []);
 
-  return { settings, hydrated, update };
+  return { settings, hydrated, saving, saveError, save, update };
 }
 
-// Para componentes que solo necesitan leer (no editar), sin re-render extra.
-export function readPaymentSettings(): PaymentSettings {
-  return load();
+export async function readPaymentSettings(): Promise<PaymentSettings> {
+  return fetchSettings();
 }

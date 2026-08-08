@@ -19,9 +19,6 @@ export default function Footer() {
           <Link href="/politica-reembolso" className="text-xs text-brand-textMuted hover:text-white">
             Reembolsos
           </Link>
-          <Link href="/admin" className="text-xs text-brand-textMuted hover:text-white">
-            Panel admin
-          </Link>
         </div>
       </div>
     </footer>

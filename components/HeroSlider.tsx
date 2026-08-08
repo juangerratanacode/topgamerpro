@@ -4,12 +4,23 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useBanners } from "@/lib/bannersStore";
+import { useBanners, type Banner } from "@/lib/bannersStore";
 
 const AUTOPLAY_MS = 6000;
+const SWIPE_THRESHOLD = 60;
 
-export default function HeroSlider() {
-  const { banners, hydrated } = useBanners();
+interface HeroSliderProps {
+  banners?: Banner[];
+  hydrated?: boolean;
+}
+
+export default function HeroSlider({ banners: bannersProp, hydrated: hydratedProp }: HeroSliderProps = {}) {
+  // Si el padre (home) ya trajo los datos sincronizados con el catálogo,
+  // los usamos tal cual; si no, este componente se las arregla solo (ej.
+  // si se usa suelto en otra página).
+  const own = useBanners();
+  const banners = bannersProp ?? own.banners;
+  const hydrated = hydratedProp ?? own.hydrated;
   const [index, setIndex] = useState(0);
 
   const count = banners.length;
@@ -37,7 +48,11 @@ export default function HeroSlider() {
   }, [count, index]);
 
   if (!hydrated || count === 0) {
-    return <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 h-48 sm:h-80" />;
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="rounded-3xl bg-brand-surface h-56 sm:h-80 lg:h-96 animate-pulse" />
+      </div>
+    );
   }
 
   const slide = banners[index];
@@ -45,7 +60,7 @@ export default function HeroSlider() {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
       <div className="relative rounded-3xl overflow-hidden border border-brand-border bg-brand-surface h-56 sm:h-80 lg:h-96">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={slide.id}
             initial={{ opacity: 0 }}
@@ -53,6 +68,13 @@ export default function HeroSlider() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
             className="absolute inset-0"
+            drag={count > 1 ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.15}
+            onDragEnd={(_e, info) => {
+              if (info.offset.x < -SWIPE_THRESHOLD) next();
+              else if (info.offset.x > SWIPE_THRESHOLD) prev();
+            }}
           >
             <Image
               src={slide.imageUrl}

@@ -1,15 +1,16 @@
 "use client";
 
-// Portadas del slider de inicio (como el carrusel "Robux al mejor precio" de
-// referencia). Mismo patrón que paymentSettingsStore: viven en localStorage
-// mientras no conectemos Supabase, editables desde /admin/banners.
+// Portadas del slider de inicio. Antes vivían en localStorage; ahora se
+// leen/escriben en la tabla `banners` de Supabase a través de
+// /api/admin/banners (que usa la service_role key del lado servidor).
 
 import { useCallback, useEffect, useState } from "react";
-import { safeLocalStorageSet } from "./image";
+import { adminFetch } from "./adminFetch";
+import { supabase } from "./supabaseClient";
 
 export interface Banner {
   id: string;
-  imageUrl: string; // dataURL subida desde el admin
+  imageUrl: string;
   title: string;
   subtitle: string;
   ctaLabel: string;
@@ -27,23 +28,38 @@ export const DEFAULT_BANNERS: Banner[] = [
   },
 ];
 
-const STORAGE_KEY = "pitanga_banners_v1";
-
-function load(): Banner[] {
-  if (typeof window === "undefined") return DEFAULT_BANNERS;
+// Lectura pública directa a Supabase (mismo camino rápido que usa el
+// catálogo) — antes pasaba por /api/admin/banners, un salto de red extra
+// que hacía que el slider apareciera después que los juegos.
+async function fetchBanners(): Promise<Banner[]> {
+  if (!supabase) return DEFAULT_BANNERS;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_BANNERS;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_BANNERS;
-    return parsed;
+    const { data, error } = await supabase.from("banners").select("*").order("sort_order", { ascending: true });
+    if (error || !data || data.length === 0) return DEFAULT_BANNERS;
+    return data.map((b: any) => ({
+      id: b.id,
+      imageUrl: b.image_url,
+      title: b.title,
+      subtitle: b.subtitle ?? "",
+      ctaLabel: b.cta_label ?? "",
+      ctaHref: b.cta_href ?? "",
+    }));
   } catch {
     return DEFAULT_BANNERS;
   }
 }
 
-function save(banners: Banner[]): boolean {
-  return safeLocalStorageSet(STORAGE_KEY, JSON.stringify(banners));
+async function persistBanners(banners: Banner[]): Promise<boolean> {
+  try {
+    const res = await adminFetch("/api/admin/banners", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ banners }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 function newId() {
@@ -53,16 +69,23 @@ function newId() {
 export function useBanners() {
   const [banners, setBanners] = useState<Banner[]>(DEFAULT_BANNERS);
   const [hydrated, setHydrated] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
-    setBanners(load());
-    setHydrated(true);
+    fetchBanners().then((b) => {
+      setBanners(b);
+      setHydrated(true);
+    });
   }, []);
 
-  useEffect(() => {
-    if (hydrated) setSaveError(!save(banners));
-  }, [banners, hydrated]);
+  const save = useCallback(async () => {
+    setSaving(true);
+    const ok = await persistBanners(banners);
+    setSaveError(!ok);
+    setSaving(false);
+    return ok;
+  }, [banners]);
 
   const add = useCallback((banner: Omit<Banner, "id">) => {
     setBanners((prev) => [...prev, { ...banner, id: newId() }]);
@@ -96,10 +119,11 @@ export function useBanners() {
     });
   }, []);
 
-  return { banners, hydrated, saveError, add, update, remove, moveUp, moveDown };
+  return { banners, hydrated, saving, saveError, save, add, update, remove, moveUp, moveDown };
 }
 
-// Lectura simple para componentes que solo muestran (sin editar).
-export function readBanners(): Banner[] {
-  return load();
+// Lectura simple para componentes que solo muestran (sin editar), ej. el
+// slider del home.
+export async function readBanners(): Promise<Banner[]> {
+  return fetchBanners();
 }
