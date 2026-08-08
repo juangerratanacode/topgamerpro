@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+  background-color: #0a0e17;
+  color: #f2f4f8;
+}
+
+::selection {
+  background: #ff5b2e;
+  color: white;
+}
+
+/* Scrollbar oscuro, más acorde al tema */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0e17;
+}
+::-webkit-scrollbar-thumb {
+  background: #242c40;
+  border-radius: 8px;
+}
+
+/* Oculta la scrollbar en contenedores horizontales deslizables (ej. las
+   pastillas de filtro en móvil) sin quitar la posibilidad de hacer scroll. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
