@@ -16,8 +16,8 @@ export default function PackageIconDisplay({
 
   if (variation.iconImageUrl) {
     return (
-      <span className={`relative inline-block overflow-hidden rounded ${cls}`}>
-        <Image src={variation.iconImageUrl} alt="" fill className="object-cover" />
+      <span className={`relative inline-block rounded ${cls}`}>
+        <Image src={variation.iconImageUrl} alt="" fill className="object-contain" />
       </span>
     );
   }
