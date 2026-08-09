@@ -36,7 +36,7 @@ const TRUST_ITEMS = [
 export default function TrustSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <h2 className="text-center text-base sm:text-lg font-bold text-white mb-4 sm:mb-5">
+      <h2 className="text-center text-base sm:text-lg font-black uppercase tracking-wide text-white mb-4 sm:mb-5">
         Recarga tus juegos favoritos con total confianza
       </h2>
 
