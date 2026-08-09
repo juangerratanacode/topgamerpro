@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Cómo recargar — RecargaTuJuego",
+  title: "Cómo recargar — TopGamerPro",
   description: "El paso a paso para recargar tu juego favorito en minutos.",
 };
 

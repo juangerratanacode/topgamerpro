@@ -2,18 +2,33 @@
 
 import { useState } from "react";
 import { WHATSAPP_NUMBER } from "@/lib/constants";
+import { useStorefrontProducts } from "@/lib/adminStore";
 
 export default function SupportForm() {
+  const { products, hydrated } = useStorefrontProducts();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [game, setGame] = useState("");
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     const cleanPhone = WHATSAPP_NUMBER.replace("+", "");
-    const text = `Hola RecargaTuJuego, soy ${name || "un cliente"} (${email || "sin correo"}).\n\n${message}`;
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    const lines = [
+      "Hola TopGamerPro, tengo una consulta de soporte:",
+      "",
+      `Nombre: ${name}`,
+      `Correo: ${email}`,
+      `Asunto: ${subject}`,
+      `Juego: ${game}`,
+      "",
+      message,
+    ];
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(lines.join("\n"))}`;
     window.open(url, "_blank");
     setSent(true);
   }
@@ -28,6 +43,8 @@ export default function SupportForm() {
         <button
           onClick={() => {
             setSent(false);
+            setSubject("");
+            setGame("");
             setMessage("");
           }}
           className="mt-4 text-sm underline text-brand-textMuted hover:text-white"
@@ -45,17 +62,45 @@ export default function SupportForm() {
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Tu nombre"
+          placeholder="Mi Nombre"
           className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
         />
         <input
+          required
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Tu correo (opcional)"
+          placeholder="Correo electrónico"
           className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
         />
       </div>
+
+      <input
+        required
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        placeholder="Asunto por el que escribe"
+        className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
+      />
+
+      <select
+        required
+        value={game}
+        onChange={(e) => setGame(e.target.value)}
+        disabled={!hydrated}
+        className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-primary disabled:opacity-60"
+      >
+        <option value="" disabled>
+          {hydrated ? "Selecciona el juego" : "Cargando juegos..."}
+        </option>
+        {products.map((p) => (
+          <option key={p.id} value={p.name}>
+            {p.name}
+          </option>
+        ))}
+        <option value="Otro / No listado">Otro / No listado</option>
+      </select>
+
       <textarea
         required
         value={message}
@@ -64,6 +109,7 @@ export default function SupportForm() {
         rows={4}
         className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary resize-none"
       />
+
       <button
         type="submit"
         className="w-full sm:w-auto bg-brand-primary hover:bg-brand-primaryDark text-brand-bg font-bold px-6 py-3 rounded-full transition-colors"

@@ -8,7 +8,7 @@ export default function PoliticaPrivacidadPage() {
         <section>
           <h2 className="text-white font-bold mb-2">1. Qué datos recopilamos</h2>
           <p>
-            Cuando realizas un pedido en RecargaTuJuego recopilamos: nombre, correo electrónico, número de
+            Cuando realizas un pedido en TopGamerPro recopilamos: nombre, correo electrónico, número de
             WhatsApp, los datos del juego que nos indiques (ID de jugador, usuario, correo de la
             cuenta u otros campos que pida cada producto), el método de pago elegido y, cuando
             aplica, la imagen del comprobante de pago que subes.
@@ -29,7 +29,7 @@ export default function PoliticaPrivacidadPage() {
           <p>
             Las imágenes de comprobantes de pago se usan exclusivamente para verificar tu
             transacción y se conservan como respaldo del pedido. No se comparten fuera del equipo
-            de RecargaTuJuego.
+            de TopGamerPro.
           </p>
         </section>
 

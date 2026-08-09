@@ -19,7 +19,7 @@ export default function PoliticaReembolsoPage() {
           <h2 className="text-white font-bold mb-2">2. Verifica tus datos antes de pagar</h2>
           <p>
             Es tu responsabilidad revisar que el ID de jugador, usuario, servidor o correo que
-            indicas al comprar sea el correcto. RecargaTuJuego no se hace responsable por recargas
+            indicas al comprar sea el correcto. TopGamerPro no se hace responsable por recargas
             enviadas a una cuenta equivocada debido a datos mal escritos por el comprador.
           </p>
         </section>

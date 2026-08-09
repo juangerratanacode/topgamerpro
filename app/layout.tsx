@@ -18,7 +18,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "RecargaTuJuego — Recargas de Videojuegos",
+  title: "TopGamerPro — Recargas de Videojuegos",
   description: "Recarga tus juegos favoritos en minutos. Pago Móvil y PayPal.",
 };
 

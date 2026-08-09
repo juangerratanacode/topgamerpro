@@ -6,7 +6,7 @@ export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
     <span className="flex items-center">
       <Image
         src="/logo.png"
-        alt="RecargaTuJuego"
+        alt="TopGamerPro"
         width={h * 5}
         height={h}
         style={{ height: h, width: "auto" }}
