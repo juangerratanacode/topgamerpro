@@ -58,7 +58,7 @@ export default function TrustSection() {
         ))}
       </h2>
 
-      <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+      <div className="flex flex-nowrap sm:flex-wrap sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0 scrollbar-none snap-x snap-mandatory sm:snap-none">
         {TRUST_ITEMS.map((item) => (
           <div
             key={item.label}
