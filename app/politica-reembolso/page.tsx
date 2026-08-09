@@ -50,8 +50,7 @@ export default function PoliticaReembolsoPage() {
           <h2 className="text-white font-bold mb-2">5. Métodos de reembolso</h2>
           <p>
             El reembolso se realiza por el mismo método de pago que usaste originalmente (Pago
-            Móvil, Binance, PayPal o Bancolombia), salvo que acuerdes otra cosa directamente con
-            soporte.
+            Móvil o PayPal), salvo que acuerdes otra cosa directamente con soporte.
           </p>
         </section>
       </div>

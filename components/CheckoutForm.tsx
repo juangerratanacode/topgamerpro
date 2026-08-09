@@ -15,17 +15,10 @@ import clsx from "clsx";
 
 const METHOD_META: Record<PaymentMethodId, { label: string; hint: string; currency: Currency }> = {
   pago_movil_manual: { label: "Pago Móvil", hint: "Bolívares", currency: "VES" },
-  binance_manual: { label: "Binance", hint: "USDT", currency: "USD" },
   paypal: { label: "PayPal", hint: "Pago directo", currency: "USD" },
-  bancolombia_manual: { label: "Bancolombia", hint: "Pesos colombianos", currency: "COP" },
 };
 
-const METHOD_ORDER: PaymentMethodId[] = [
-  "pago_movil_manual",
-  "binance_manual",
-  "paypal",
-  "bancolombia_manual",
-];
+const METHOD_ORDER: PaymentMethodId[] = ["pago_movil_manual", "paypal"];
 
 export default function CheckoutForm() {
   const { items, clearCart } = useCart();
@@ -231,9 +224,6 @@ export default function CheckoutForm() {
                 Cédula: {paymentSettings.pagoMovil.cedula}
               </PaymentBox>
             )}
-            {method === "binance_manual" && (
-              <PaymentBox title="Cuenta Binance">{paymentSettings.binance.cuenta}</PaymentBox>
-            )}
             {method === "paypal" && (
               <div className="space-y-3">
                 <PaymentBox title="Pago directo con PayPal">
@@ -257,25 +247,17 @@ export default function CheckoutForm() {
                 )}
               </div>
             )}
-            {method === "bancolombia_manual" && (
-              <PaymentBox title="Cuenta Bancolombia">{paymentSettings.bancolombia.cuenta}</PaymentBox>
-            )}
-
             <input
               className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
               placeholder={
-                method === "binance_manual"
-                  ? "Últimos 6 dígitos del ID de pago"
-                  : method === "paypal"
-                  ? "ID de transacción de PayPal"
-                  : "Últimos 4 dígitos de la referencia"
+                method === "paypal" ? "ID de transacción de PayPal" : "Últimos 4 dígitos de la referencia"
               }
               value={reference}
               onChange={(e) =>
                 setReference(method === "paypal" ? e.target.value : e.target.value.replace(/[^0-9]/g, ""))
               }
               inputMode={method === "paypal" ? "text" : "numeric"}
-              maxLength={method === "binance_manual" ? 6 : method === "paypal" ? undefined : 4}
+              maxLength={method === "paypal" ? undefined : 4}
             />
 
             {receiptRequired && (

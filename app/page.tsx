@@ -32,7 +32,7 @@ export default async function HomePage() {
           <div className="grid sm:grid-cols-3 gap-4">
             {[
               { title: "Entrega rápida", desc: "Tu recarga se procesa en minutos, no en horas." },
-              { title: "Pago local", desc: "Pago Móvil, Binance y Bancolombia, sin complicaciones." },
+              { title: "Pago local", desc: "Pago Móvil, sin complicaciones." },
               { title: "Soporte directo", desc: "Atención personal por WhatsApp en cada pedido." },
             ].map((b) => (
               <div

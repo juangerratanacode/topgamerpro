@@ -3,7 +3,7 @@
 
 export type Currency = "USD" | "VES" | "COP";
 
-export type PaymentMethodId = "binance_manual" | "pago_movil_manual" | "bancolombia_manual" | "paypal";
+export type PaymentMethodId = "pago_movil_manual" | "paypal";
 
 export type PackageIcon = "diamond" | "coin" | "cp" | "uc" | "robux" | "pass" | "card" | "generic";
 
@@ -63,7 +63,7 @@ export interface GameFieldDef {
 export interface ProductVariation {
   id: string;
   label: string; // ej: "100 Diamantes"
-  priceUsd: number; // precio base en USD (Pago Móvil / Binance / Bancolombia)
+  priceUsd: number; // precio base en USD (Pago Móvil)
   priceUsdPaypal?: number; // precio específico para PayPal, se define a mano en admin
   // (no se calcula con una fórmula adivinada — cada juego puede tener su
   // propio margen para absorber la comisión de PayPal)

@@ -11,9 +11,7 @@ const STATUS_META: Record<OrderStatus, { label: string; className: string }> = {
 };
 
 const METHOD_LABELS: Record<string, string> = {
-  binance_manual: "Binance",
   pago_movil_manual: "Pago Móvil",
-  bancolombia_manual: "Bancolombia",
 };
 
 function monthKey(iso: string) {

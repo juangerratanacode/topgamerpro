@@ -1,6 +1,6 @@
 "use client";
 
-// Datos de las cuentas de cobro (Pago Móvil, Binance, Bancolombia, PayPal).
+// Datos de las cuentas de cobro (Pago Móvil, PayPal).
 // Antes vivían en localStorage; ahora se leen/escriben en la tabla
 // `payment_settings` de Supabase vía /api/admin/payment-settings.
 
@@ -9,15 +9,11 @@ import { adminFetch } from "./adminFetch";
 
 export interface PaymentSettings {
   pagoMovil: { banco: string; telefono: string; cedula: string };
-  binance: { cuenta: string };
-  bancolombia: { cuenta: string };
   paypal: { correo: string; paypalMeUser: string };
 }
 
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
   pagoMovil: { banco: "Banesco (0134)", telefono: "0412-3542332", cedula: "V-27894619" },
-  binance: { cuenta: "correo@binance.com" },
-  bancolombia: { cuenta: "Ahorros 240-000004-26" },
   paypal: { correo: "pagos@novatop.com", paypalMeUser: "novatoprecargas" },
 };
 

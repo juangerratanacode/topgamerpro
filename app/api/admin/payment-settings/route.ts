@@ -4,8 +4,6 @@ import { requireAdmin } from "@/lib/adminAuth";
 
 export interface PaymentSettings {
   pagoMovil: { banco: string; telefono: string; cedula: string };
-  binance: { cuenta: string };
-  bancolombia: { cuenta: string };
   paypal: { correo: string; paypalMeUser: string };
 }
 
@@ -17,8 +15,6 @@ export async function GET() {
 
   const settings: PaymentSettings = {
     pagoMovil: data.pago_movil,
-    binance: data.binance,
-    bancolombia: data.bancolombia,
     paypal: data.paypal,
   };
 
@@ -37,8 +33,6 @@ export async function PUT(req: NextRequest) {
     .from("payment_settings")
     .update({
       pago_movil: settings.pagoMovil,
-      binance: settings.binance,
-      bancolombia: settings.bancolombia,
       paypal: settings.paypal,
       updated_at: new Date().toISOString(),
     })

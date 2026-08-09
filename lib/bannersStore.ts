@@ -22,7 +22,7 @@ export const DEFAULT_BANNERS: Banner[] = [
     id: "banner-default-1",
     imageUrl: "/hero/hero-visual.png",
     title: "Recarga tu juego favorito",
-    subtitle: "Entrega en minutos con Pago Móvil, Binance, PayPal o Bancolombia",
+    subtitle: "Entrega en minutos con Pago Móvil o PayPal",
     ctaLabel: "Ver catálogo",
     ctaHref: "/#catalogo",
   },

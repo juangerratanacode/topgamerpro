@@ -15,8 +15,7 @@ export default function PagosPage() {
       <h1 className="text-2xl font-extrabold mb-2">Métodos de pago</h1>
       <p className="text-sm text-brand-textMuted mb-8">
         Estos son los datos que ve el cliente en el checkout para cada método. Cámbialos aquí
-        cuando cambies de banco, cuenta de Binance o de PayPal — se actualiza en todo el sitio al
-        instante.
+        cuando cambies de banco o de PayPal — se actualiza en todo el sitio al instante.
       </p>
 
       <div className="space-y-6">
@@ -39,24 +38,6 @@ export default function PagosPage() {
               onChange={(v) => update("pagoMovil", { cedula: v })}
             />
           </div>
-        </div>
-
-        <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
-          <h2 className="font-bold mb-4">Binance (USDT)</h2>
-          <Field
-            label="Correo / ID de Binance Pay"
-            value={settings.binance.cuenta}
-            onChange={(v) => update("binance", { cuenta: v })}
-          />
-        </div>
-
-        <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
-          <h2 className="font-bold mb-4">Bancolombia (COP)</h2>
-          <Field
-            label="Número de cuenta"
-            value={settings.bancolombia.cuenta}
-            onChange={(v) => update("bancolombia", { cuenta: v })}
-          />
         </div>
 
         <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">

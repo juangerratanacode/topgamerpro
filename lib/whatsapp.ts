@@ -3,9 +3,7 @@ import { getItemPriceForMethod } from "./pricing";
 import type { CartItem, CustomerInfo, OrderPaymentDetails } from "./types";
 
 const PAYMENT_METHOD_NAMES: Record<string, string> = {
-  binance_manual: "Binance",
   pago_movil_manual: "Pago Móvil",
-  bancolombia_manual: "Bancolombia",
   paypal: "PayPal",
 };
 

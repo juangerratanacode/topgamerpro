@@ -10,7 +10,7 @@ const faqs = [
   },
   {
     q: "¿Qué métodos de pago aceptan?",
-    a: "Pago Móvil (bolívares), Binance (USD) y Bancolombia (pesos colombianos). Elige el que prefieras al momento de pagar.",
+    a: "Pago Móvil (bolívares) y PayPal (USD). Elige el que prefieras al momento de pagar.",
   },
   {
     q: "¿Qué pasa si me equivoco en mi ID de jugador?",

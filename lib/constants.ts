@@ -12,12 +12,6 @@ export const PAYMENT_INFO = {
     telefono: process.env.PAGO_MOVIL_TELEFONO || "0412-3542332",
     cedula: process.env.PAGO_MOVIL_CEDULA || "V-27894619",
   },
-  binance: {
-    cuenta: process.env.BINANCE_CUENTA || "correo@binance.com",
-  },
-  bancolombia: {
-    cuenta: process.env.BANCOLOMBIA_CUENTA || "Ahorros 240-000004-26",
-  },
   paypal: {
     correo: process.env.PAYPAL_CORREO || "pagos@novatop.com",
   },

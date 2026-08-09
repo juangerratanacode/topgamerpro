@@ -25,10 +25,7 @@ export function validateGameFields(fields: GameFieldValue[]): string | null {
 
 export function validatePaymentReference(method: string, reference: string): string | null {
   const cleaned = reference.trim();
-  if (method === "binance_manual" && cleaned.length !== 6) {
-    return "El ID de Binance debe tener exactamente 6 dígitos.";
-  }
-  if ((method === "pago_movil_manual" || method === "bancolombia_manual") && cleaned.length !== 4) {
+  if (method === "pago_movil_manual" && cleaned.length !== 4) {
     return "La referencia debe tener exactamente 4 dígitos.";
   }
   return null;

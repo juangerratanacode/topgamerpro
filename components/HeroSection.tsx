@@ -61,7 +61,7 @@ export default function HeroSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-brand-textMuted mt-4 max-w-lg text-base sm:text-lg"
           >
-            Elige tu juego, indica tus datos y paga con Pago Móvil, Binance, PayPal o Bancolombia —
+            Elige tu juego, indica tus datos y paga con Pago Móvil o PayPal —
             la recarga se procesa en minutos.
           </motion.p>
           <motion.div
