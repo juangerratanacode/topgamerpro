@@ -86,13 +86,28 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
             }}
           >
             <motion.div style={{ y: parallaxY }} className="absolute -inset-x-0 -top-[10%] h-[120%]">
-              <Image
-                src={slide.imageUrl}
-                alt={slide.title}
-                fill
-                priority={index === 0}
-                className="object-cover object-center"
-              />
+              {slide.videoUrl ? (
+                <video
+                  key={slide.videoUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  poster={slide.imageUrl || undefined}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                >
+                  <source src={slide.videoUrl} type="video/mp4" />
+                </video>
+              ) : (
+                <Image
+                  src={slide.imageUrl}
+                  alt={slide.title}
+                  fill
+                  priority={index === 0}
+                  className="object-cover object-center"
+                />
+              )}
             </motion.div>
             <div className="absolute inset-0 bg-gradient-to-r from-brand-bg via-brand-bg/40 to-transparent" />
 

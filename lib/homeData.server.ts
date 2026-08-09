@@ -16,6 +16,7 @@ async function fetchBannersServer(): Promise<Banner[]> {
   return data.map((b: any) => ({
     id: b.id,
     imageUrl: b.image_url,
+    videoUrl: b.video_url ?? undefined,
     title: b.title,
     subtitle: b.subtitle ?? "",
     ctaLabel: b.cta_label ?? "",

@@ -11,6 +11,9 @@ import { supabase } from "./supabaseClient";
 export interface Banner {
   id: string;
   imageUrl: string;
+  // Si se define, el hero muestra este video de fondo en loop en vez de
+  // la imagen estática (imageUrl igual se usa como poster/fallback).
+  videoUrl?: string;
   title: string;
   subtitle: string;
   ctaLabel: string;
@@ -39,6 +42,7 @@ async function fetchBanners(): Promise<Banner[]> {
     return data.map((b: any) => ({
       id: b.id,
       imageUrl: b.image_url,
+      videoUrl: b.video_url ?? undefined,
       title: b.title,
       subtitle: b.subtitle ?? "",
       ctaLabel: b.cta_label ?? "",

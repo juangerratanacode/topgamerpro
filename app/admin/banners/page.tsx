@@ -24,7 +24,7 @@ export default function BannersPage() {
 
       {saveError && (
         <div className="mb-6 bg-red-500/10 border border-red-500/40 text-red-300 text-sm rounded-xl p-4">
-          No se pudo guardar el último cambio. Revisa tu conexión e intenta de nuevo.
+          {saveError}
         </div>
       )}
 

@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 export interface Banner {
   id: string;
   imageUrl: string;
+  videoUrl?: string;
   title: string;
   subtitle: string;
   ctaLabel: string;
@@ -26,6 +27,7 @@ export async function GET() {
   const banners: Banner[] = (data ?? []).map((b: any) => ({
     id: b.id,
     imageUrl: b.image_url,
+    videoUrl: b.video_url ?? undefined,
     title: b.title,
     subtitle: b.subtitle ?? "",
     ctaLabel: b.cta_label ?? "",
@@ -50,6 +52,7 @@ export async function PUT(req: NextRequest) {
   if (banners.length > 0) {
     const rows = banners.map((b, i) => ({
       image_url: b.imageUrl,
+      video_url: b.videoUrl ?? null,
       title: b.title,
       subtitle: b.subtitle,
       cta_label: b.ctaLabel,
