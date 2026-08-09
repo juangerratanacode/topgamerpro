@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import FAQ from "@/components/FAQ";
 import HeroSlider from "@/components/HeroSlider";
+import TrustSection from "@/components/TrustSection";
 import CatalogSection from "@/components/CatalogSection";
 import CatalogSkeleton from "@/components/CatalogSkeleton";
 import HomeSection from "@/components/HomeSection";
@@ -19,6 +20,10 @@ export default async function HomePage() {
     <div>
       <HomeSection>
         <HeroSlider banners={banners} hydrated />
+      </HomeSection>
+
+      <HomeSection delay={0.04}>
+        <TrustSection />
       </HomeSection>
 
       <HomeSection delay={0.08}>
