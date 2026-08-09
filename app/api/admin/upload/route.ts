@@ -4,13 +4,20 @@ import { requireAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
-const BUCKET = "site-images";
+const IMAGE_BUCKET = "site-images";
+const VIDEO_BUCKET = "site-videos";
 
-// Sube una imagen (ícono de paquete, foto de producto, portada) a Supabase
-// Storage y devuelve su URL pública. Reemplaza el guardado anterior como
-// base64 dentro de las tablas — eso hinchaba el payload del catálogo hasta
-// pasar el límite de tamaño de request de Vercel (~4.5MB) apenas se
-// acumulaban unos pocos íconos.
+const VIDEO_EXT_BY_TYPE: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+};
+
+// Sube una imagen o video (ícono de paquete, foto de producto, portada,
+// video de fondo del hero) a Supabase Storage y devuelve su URL pública.
+// Reemplaza el guardado anterior como base64 dentro de las tablas — eso
+// hinchaba el payload del catálogo hasta pasar el límite de tamaño de
+// request de Vercel (~4.5MB) apenas se acumulaban unos pocos íconos.
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return NextResponse.json({ error: "No autorizado" }, { status: auth.status });
@@ -22,15 +29,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No se recibió ningún archivo" }, { status: 400 });
   }
 
-  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const isVideo = file.type.startsWith("video/");
+  const bucket = isVideo ? VIDEO_BUCKET : IMAGE_BUCKET;
+  const ext = isVideo
+    ? VIDEO_EXT_BY_TYPE[file.type] ?? "mp4"
+    : file.type === "image/png"
+    ? "png"
+    : file.type === "image/webp"
+    ? "webp"
+    : "jpg";
   const path = `${crypto.randomUUID()}.${ext}`;
 
   const { error } = await supabaseAdmin.storage
-    .from(BUCKET)
+    .from(bucket)
     .upload(path, await file.arrayBuffer(), { contentType: file.type, upsert: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
+  const { data } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
   return NextResponse.json({ url: data.publicUrl });
 }

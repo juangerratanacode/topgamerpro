@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useBanners, type Banner } from "@/lib/bannersStore";
-import { fileToUploadedUrl } from "@/lib/image";
+import { fileToUploadedUrl, fileToUploadedVideoUrl } from "@/lib/image";
 import SaveBar from "@/components/SaveBar";
 
 export default function BannersPage() {
@@ -135,6 +135,53 @@ function BannerCard({
             onChange={(v) => onUpdate({ ctaHref: v })}
           />
         </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-xs font-semibold text-brand-textMuted mb-1">
+          Video de fondo (opcional)
+        </label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={banner.videoUrl ?? ""}
+            onChange={(e) => onUpdate({ videoUrl: e.target.value.trim() ? e.target.value : undefined })}
+            placeholder="/videos/hero-bg.mp4"
+            className="flex-1 bg-brand-surfaceLight border border-brand-border rounded-lg px-3 py-2 text-sm"
+          />
+          <div className="flex gap-2 shrink-0">
+            <label className="cursor-pointer text-xs font-semibold text-brand-textMuted hover:text-white border border-brand-border hover:border-brand-primary rounded-lg px-3 py-2 transition-colors whitespace-nowrap">
+              Subir video
+              <input
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const url = await fileToUploadedVideoUrl(file);
+                    onUpdate({ videoUrl: url });
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : "No se pudo subir el video.");
+                  }
+                }}
+              />
+            </label>
+            {banner.videoUrl && (
+              <button
+                type="button"
+                onClick={() => onUpdate({ videoUrl: undefined })}
+                className="text-xs font-semibold text-red-400 hover:text-red-300 px-3 py-2 rounded-lg hover:bg-red-500/10 transition-colors whitespace-nowrap"
+              >
+                Quitar video
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="text-[11px] text-brand-textMuted mt-1">
+          Si se define, este video reemplaza la imagen como fondo del banner (la imagen se sigue
+          usando como portada mientras carga). Dejalo vacío para usar solo la imagen.
+        </p>
       </div>
 
       <div className="flex items-center justify-between">

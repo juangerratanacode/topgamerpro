@@ -79,6 +79,22 @@ export async function fileToUploadedUrl(
   return data.url as string;
 }
 
+// Sube un video tal cual (sin comprimir con canvas — los videos no se
+// procesan en el navegador) a Supabase Storage y devuelve la URL pública.
+// Se usa para el video de fondo del hero.
+export async function fileToUploadedVideoUrl(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file, file.name);
+
+  const res = await adminFetch("/api/admin/upload", { method: "POST", body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? `No se pudo subir el video (error ${res.status}).`);
+  }
+  const data = await res.json();
+  return data.url as string;
+}
+
 // Guarda en localStorage sin tumbar la app si se llena — devuelve true/false
 // para que quien llama pueda avisarle al usuario.
 export function safeLocalStorageSet(key: string, value: string): boolean {
