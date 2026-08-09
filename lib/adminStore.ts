@@ -63,16 +63,19 @@ async function loadProductsFromApi(): Promise<Product[]> {
   }
 }
 
-async function persistProductsToApi(products: Product[]): Promise<boolean> {
+async function persistProductsToApi(products: Product[]): Promise<string | null> {
   try {
     const res = await adminFetch("/api/admin/products", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ products }),
     });
-    return res.ok;
-  } catch {
-    return false;
+    if (res.ok) return null;
+    if (res.status === 413) return "La imagen es muy pesada. Sube un ícono más chico o comprimido.";
+    const body = await res.json().catch(() => null);
+    return body?.error ?? `Error ${res.status} al guardar.`;
+  } catch (err) {
+    return err instanceof Error ? err.message : "No se pudo conectar con el servidor.";
   }
 }
 
@@ -80,7 +83,7 @@ export function useAdminProducts() {
   const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProductsFromApi().then((p) => {
@@ -94,10 +97,10 @@ export function useAdminProducts() {
   // endpoint que se pisaban entre sí y duplicaban paquetes en la base.
   const save = useCallback(async () => {
     setSaving(true);
-    const ok = await persistProductsToApi(products);
-    setSaveError(!ok);
+    const errorMessage = await persistProductsToApi(products);
+    setSaveError(errorMessage);
     setSaving(false);
-    return ok;
+    return !errorMessage;
   }, [products]);
 
   const moveProductUp = useCallback((id: string) => {

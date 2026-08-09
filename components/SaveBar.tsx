@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 interface SaveBarProps {
   onSave?: () => Promise<boolean> | boolean;
   saving?: boolean;
-  error?: boolean;
+  error?: boolean | string | null;
 }
 
 // Botón real de guardar: llama a onSave (que persiste en Supabase) y
@@ -29,7 +29,9 @@ export default function SaveBar({ onSave, saving, error }: SaveBarProps) {
     <div className="sticky bottom-4 z-30 flex justify-center pointer-events-none">
       <div className="pointer-events-auto flex items-center gap-3 bg-brand-surface border border-brand-border rounded-full shadow-2xl shadow-black/40 px-2 py-2">
         {error && (
-          <span className="text-red-400 text-xs font-semibold px-2">No se pudo guardar</span>
+          <span className="text-red-400 text-xs font-semibold px-2 max-w-xs">
+            {typeof error === "string" ? error : "No se pudo guardar"}
+          </span>
         )}
         <AnimatePresence mode="wait">
           {savedAt ? (
