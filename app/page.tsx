@@ -5,6 +5,7 @@ import TrustSection from "@/components/TrustSection";
 import CatalogSection from "@/components/CatalogSection";
 import CatalogSkeleton from "@/components/CatalogSkeleton";
 import HomeSection from "@/components/HomeSection";
+import BenefitsSection from "@/components/BenefitsSection";
 import { getHomeData } from "@/lib/homeData.server";
 
 // Server Component: los datos ya vienen resueltos en el HTML que manda el
@@ -33,23 +34,7 @@ export default async function HomePage() {
       </HomeSection>
 
       <HomeSection delay={0.16}>
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
-          <div className="grid sm:grid-cols-3 gap-4">
-            {[
-              { title: "Entrega rápida", desc: "Tu recarga se procesa en minutos, no en horas." },
-              { title: "Pago local", desc: "Pago Móvil, sin complicaciones." },
-              { title: "Soporte directo", desc: "Atención personal por WhatsApp en cada pedido." },
-            ].map((b) => (
-              <div
-                key={b.title}
-                className="bg-brand-surface border border-brand-border rounded-2xl p-5"
-              >
-                <div className="font-bold mb-1">{b.title}</div>
-                <div className="text-sm text-brand-textMuted">{b.desc}</div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <BenefitsSection />
       </HomeSection>
 
       <HomeSection delay={0.24}>
