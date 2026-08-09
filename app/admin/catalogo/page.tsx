@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useAdminProducts } from "@/lib/adminStore";
 import PackageIconDisplay from "@/components/PackageIconDisplay";
 import SaveBar from "@/components/SaveBar";
-import { fileToCompressedDataUrl } from "@/lib/image";
+import { fileToUploadedUrl } from "@/lib/image";
 import clsx from "clsx";
 import type { FieldType, Currency, GameGenre } from "@/lib/types";
 import { FIELD_TYPE_LABELS, GENRE_LABELS } from "@/lib/types";
@@ -149,12 +149,16 @@ export default function AdminPage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const dataUrl = await fileToCompressedDataUrl(file, {
-                          maxWidth: 800,
-                          maxHeight: 800,
-                          quality: 0.85,
-                        });
-                        updateProduct(product.id, { imageUrl: dataUrl });
+                        try {
+                          const url = await fileToUploadedUrl(file, {
+                            maxWidth: 800,
+                            maxHeight: 800,
+                            quality: 0.85,
+                          });
+                          updateProduct(product.id, { imageUrl: url });
+                        } catch (err) {
+                          alert(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+                        }
                       }}
                     />
                   </label>
@@ -260,12 +264,16 @@ export default function AdminPage() {
                                   if (!file) return;
                                   // Ícono chico (se ve en tarjetas pequeñas), no
                                   // necesita más de 300px — máxima compresión.
-                                  const dataUrl = await fileToCompressedDataUrl(file, {
-                                    maxWidth: 300,
-                                    maxHeight: 300,
-                                    quality: 0.85,
-                                  });
-                                  updateVariation(product.id, v.id, { iconImageUrl: dataUrl });
+                                  try {
+                                    const url = await fileToUploadedUrl(file, {
+                                      maxWidth: 300,
+                                      maxHeight: 300,
+                                      quality: 0.85,
+                                    });
+                                    updateVariation(product.id, v.id, { iconImageUrl: url });
+                                  } catch (err) {
+                                    alert(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+                                  }
                                 }}
                               />
                             </label>

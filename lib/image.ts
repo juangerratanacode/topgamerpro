@@ -1,5 +1,7 @@
 "use client";
 
+import { adminFetch } from "./adminFetch";
+
 // Las imágenes que se suben desde el admin (portadas, íconos de paquete,
 // comprobantes) se guardan como dataURL en localStorage mientras no
 // conectemos Supabase. localStorage tiene un límite chico (~5-10MB total en
@@ -41,6 +43,40 @@ export function fileToCompressedDataUrl(
     };
     reader.readAsDataURL(file);
   });
+}
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [meta, b64] = dataUrl.split(",");
+  const contentType = meta.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: contentType });
+}
+
+// Comprime la imagen igual que fileToCompressedDataUrl, pero en vez de
+// devolver un dataURL gigante para guardar en la fila del producto/banner
+// (lo que hinchaba el payload de "Guardar cambios" hasta pasar el límite
+// de tamaño de request de Vercel), la sube a Supabase Storage y devuelve
+// solo la URL pública — igual de liviano sin importar cuántas imágenes ya
+// tenga el catálogo.
+export async function fileToUploadedUrl(
+  file: File,
+  opts: { maxWidth?: number; maxHeight?: number; quality?: number } = {}
+): Promise<string> {
+  const dataUrl = await fileToCompressedDataUrl(file, opts);
+  const blob = dataUrlToBlob(dataUrl);
+  const ext = blob.type === "image/png" ? "png" : "jpg";
+  const form = new FormData();
+  form.append("file", blob, `upload.${ext}`);
+
+  const res = await adminFetch("/api/admin/upload", { method: "POST", body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? `No se pudo subir la imagen (error ${res.status}).`);
+  }
+  const data = await res.json();
+  return data.url as string;
 }
 
 // Guarda en localStorage sin tumbar la app si se llena — devuelve true/false

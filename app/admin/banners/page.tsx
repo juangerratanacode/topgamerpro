@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useBanners, type Banner } from "@/lib/bannersStore";
-import { fileToCompressedDataUrl } from "@/lib/image";
+import { fileToUploadedUrl } from "@/lib/image";
 import SaveBar from "@/components/SaveBar";
 
 export default function BannersPage() {
@@ -103,12 +103,16 @@ function BannerCard({
               if (!file) return;
               // Las portadas son anchas (banners de header), no necesitan más
               // de ~1920px — comprimir evita llenar el localStorage.
-              const dataUrl = await fileToCompressedDataUrl(file, {
-                maxWidth: 1920,
-                maxHeight: 960,
-                quality: 0.8,
-              });
-              onUpdate({ imageUrl: dataUrl });
+              try {
+                const url = await fileToUploadedUrl(file, {
+                  maxWidth: 1920,
+                  maxHeight: 960,
+                  quality: 0.8,
+                });
+                onUpdate({ imageUrl: url });
+              } catch (err) {
+                alert(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+              }
             }}
           />
         </label>
