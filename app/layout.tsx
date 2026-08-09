@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollMemory from "@/components/ScrollMemory";
+import FloatingHelpButton from "@/components/FloatingHelpButton";
 import { CartProvider } from "@/lib/cartStore";
 import { CurrencyProvider } from "@/lib/currencyStore";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
             </Suspense>
             <main className="flex-1">{children}</main>
             <Footer />
+            <FloatingHelpButton />
           </CartProvider>
         </CurrencyProvider>
       </body>
