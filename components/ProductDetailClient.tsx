@@ -131,7 +131,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                     : "border-brand-border bg-brand-surface hover:border-brand-textMuted"
                 )}
               >
-                <PackageIconDisplay variation={v} className="w-6 h-6" />
+                <PackageIconDisplay variation={v} className="w-9 h-9" />
                 <div className="text-xs font-semibold">{v.label}</div>
                 <div className="text-brand-green font-bold text-sm">{format(v.priceUsd)}</div>
                 {display !== "USD" && (
