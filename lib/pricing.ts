@@ -1,4 +1,4 @@
-import type { CartItem } from "./types";
+import type { CartItem, PackageIcon, Product } from "./types";
 
 // Fórmula de respaldo, extraída de comparar pitcharge.com vs
 // paypal.pitcharge.com: precio_paypal = precio_base * 1.057 + 0.31
@@ -31,4 +31,22 @@ export function getItemPriceForMethod(item: CartItem, method: string): number {
 export function getCartTotalForMethod(items: CartItem[], method: string): number {
   const total = items.reduce((sum, item) => sum + getItemPriceForMethod(item, method) * item.quantity, 0);
   return Math.round(total * 100) / 100;
+}
+
+// El ícono del item se guarda como snapshot al agregar al carrito, pero
+// carritos viejos (guardados antes de que ese snapshot existiera) no lo
+// tienen — en ese caso se busca el paquete real en el catálogo vigente por
+// productId/variationId, así siempre se muestra el ícono correcto (el
+// mismo que ve el admin) en vez de caer siempre en el genérico.
+export function getCartItemIcon(
+  item: CartItem,
+  products: Product[]
+): { icon: PackageIcon; iconImageUrl?: string } {
+  if (item.icon || item.iconImageUrl) {
+    return { icon: item.icon ?? "generic", iconImageUrl: item.iconImageUrl };
+  }
+  const variation = products
+    .find((p) => p.id === item.productId)
+    ?.variations.find((v) => v.id === item.variationId);
+  return { icon: variation?.icon ?? "generic", iconImageUrl: variation?.iconImageUrl };
 }

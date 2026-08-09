@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cartStore";
+import { useStorefrontProducts } from "@/lib/adminStore";
+import { getCartItemIcon } from "@/lib/pricing";
 import PackageIconDisplay from "@/components/PackageIconDisplay";
 
 export default function CarritoPage() {
   const { items, removeItem, totalUsd } = useCart();
+  const { products } = useStorefrontProducts();
   const router = useRouter();
 
   if (items.length === 0) {
@@ -32,7 +35,7 @@ export default function CarritoPage() {
           >
             <div className="flex items-start gap-3">
               <PackageIconDisplay
-                variation={{ icon: item.icon ?? "generic", iconImageUrl: item.iconImageUrl }}
+                variation={getCartItemIcon(item, products)}
                 className="w-8 h-8 shrink-0 mt-0.5"
               />
               <div>

@@ -51,7 +51,7 @@ export function flagEmoji(iso: string): string {
 // no hace falta distinguirlos aquí (tampoco tienen prefijos únicos: usan
 // códigos de área tipo NANP, no prefijos de operadora fijos).
 const NATIONAL_RULES_BY_DIAL: Record<string, { min: number; max: number; prefixes?: string[] }> = {
-  "58": { min: 10, max: 10, prefixes: ["412", "414", "416", "424", "426"] }, // Venezuela (Movistar/Movilnet/Digitel)
+  "58": { min: 10, max: 10, prefixes: ["412", "414", "416", "422", "424", "426"] }, // Venezuela: Movilnet (412/416/426), Movistar (414/424), Digitel (412/422)
   "57": { min: 10, max: 10, prefixes: ["3"] }, // Colombia: todo móvil empieza con 3
   "52": { min: 10, max: 10 }, // México: formato varía mucho por región, solo largo
   "51": { min: 9, max: 9, prefixes: ["9"] }, // Perú: móvil siempre empieza con 9

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cartStore";
 import { usePaymentSettings } from "@/lib/paymentSettingsStore";
-import { getCartTotalForMethod } from "@/lib/pricing";
+import { getCartTotalForMethod, getCartItemIcon } from "@/lib/pricing";
+import { useStorefrontProducts } from "@/lib/adminStore";
 import { validatePaymentReference } from "@/lib/validation";
 import { buildWhatsAppMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 import { fileToDataUrl } from "@/lib/ordersStore";
@@ -23,6 +24,7 @@ const METHOD_ORDER: PaymentMethodId[] = ["pago_movil_manual", "paypal"];
 
 export default function CheckoutForm() {
   const { items, clearCart } = useCart();
+  const { products } = useStorefrontProducts();
   const { rates } = useCurrency();
   const { settings: paymentSettings, hydrated: paymentsHydrated } = usePaymentSettings();
   const router = useRouter();
@@ -313,7 +315,7 @@ export default function CheckoutForm() {
           {items.map((item) => (
             <div key={item.cartItemId} className="flex items-center gap-3">
               <PackageIconDisplay
-                variation={{ icon: item.icon ?? "generic", iconImageUrl: item.iconImageUrl }}
+                variation={getCartItemIcon(item, products)}
                 className="w-7 h-7 shrink-0"
               />
               <div className="flex-1 min-w-0">
