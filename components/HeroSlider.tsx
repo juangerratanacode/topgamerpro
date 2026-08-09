@@ -87,14 +87,20 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
 
             <div className="absolute inset-0 flex items-center pb-10 sm:pb-8">
               <div className="px-6 sm:px-10 max-w-lg">
-                <motion.h2
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                  className="text-2xl sm:text-4xl font-black text-white leading-tight drop-shadow"
-                >
-                  {slide.title}
-                </motion.h2>
+                <h2 className="text-2xl sm:text-4xl font-black text-white leading-tight drop-shadow">
+                  {slide.title.split(" ").map((word, i) => (
+                    <span key={i} className="inline-block overflow-hidden align-bottom mr-[0.28em] pb-1 -mb-1">
+                      <motion.span
+                        className="inline-block"
+                        initial={{ y: "110%" }}
+                        animate={{ y: "0%" }}
+                        transition={{ duration: 0.6, delay: 0.1 + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+                      >
+                        {word}
+                      </motion.span>
+                    </span>
+                  ))}
+                </h2>
                 {slide.subtitle && (
                   <motion.p
                     initial={{ opacity: 0, y: 12 }}

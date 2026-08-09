@@ -49,16 +49,19 @@ async function fetchBanners(): Promise<Banner[]> {
   }
 }
 
-async function persistBanners(banners: Banner[]): Promise<boolean> {
+async function persistBanners(banners: Banner[]): Promise<string | null> {
   try {
     const res = await adminFetch("/api/admin/banners", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ banners }),
     });
-    return res.ok;
-  } catch {
-    return false;
+    if (res.ok) return null;
+    if (res.status === 413) return "Las imágenes son muy pesadas. Sube portadas más chicas o comprimidas.";
+    const body = await res.json().catch(() => null);
+    return body?.error ?? `Error ${res.status} al guardar.`;
+  } catch (err) {
+    return err instanceof Error ? err.message : "No se pudo conectar con el servidor.";
   }
 }
 
@@ -70,7 +73,7 @@ export function useBanners() {
   const [banners, setBanners] = useState<Banner[]>(DEFAULT_BANNERS);
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBanners().then((b) => {
@@ -81,10 +84,10 @@ export function useBanners() {
 
   const save = useCallback(async () => {
     setSaving(true);
-    const ok = await persistBanners(banners);
-    setSaveError(!ok);
+    const errorMessage = await persistBanners(banners);
+    setSaveError(errorMessage);
     setSaving(false);
-    return ok;
+    return !errorMessage;
   }, [banners]);
 
   const add = useCallback((banner: Omit<Banner, "id">) => {
