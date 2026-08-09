@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cartStore";
+import PackageIconDisplay from "@/components/PackageIconDisplay";
 
 export default function CarritoPage() {
   const { items, removeItem, totalUsd } = useCart();
@@ -29,14 +30,20 @@ export default function CarritoPage() {
             key={item.cartItemId}
             className="bg-brand-surface border border-brand-border rounded-2xl p-4 flex justify-between items-start"
           >
-            <div>
-              <div className="font-semibold text-sm">{item.productName}</div>
-              <div className="text-xs text-brand-textMuted">{item.variationLabel}</div>
-              {item.gameFields.map((f) => (
-                <div key={f.label} className="text-xs text-brand-textMuted">
-                  {f.label}: {f.value}
-                </div>
-              ))}
+            <div className="flex items-start gap-3">
+              <PackageIconDisplay
+                variation={{ icon: item.icon ?? "generic", iconImageUrl: item.iconImageUrl }}
+                className="w-8 h-8 shrink-0 mt-0.5"
+              />
+              <div>
+                <div className="font-semibold text-sm">{item.productName}</div>
+                <div className="text-xs text-brand-textMuted">{item.variationLabel}</div>
+                {item.gameFields.map((f) => (
+                  <div key={f.label} className="text-xs text-brand-textMuted">
+                    {f.label}: {f.value}
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="text-right">
               <div className="font-bold text-brand-green text-sm mb-1">

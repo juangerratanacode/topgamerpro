@@ -104,6 +104,8 @@ export interface CartItem {
   quantity: number;
   gameFields: GameFieldValue[];
   reloadlyProductId?: number | null;
+  icon?: PackageIcon; // respaldo genérico si no hay iconImageUrl (snapshot del paquete al agregar al carrito)
+  iconImageUrl?: string;
 }
 
 export interface CustomerInfo {

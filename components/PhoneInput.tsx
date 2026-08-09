@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { COUNTRY_CODES, flagEmoji, isValidNationalNumber } from "@/lib/countryCodes";
+import { COUNTRY_CODES, flagEmoji, isValidNationalNumber, nationalNumberLengthHint } from "@/lib/countryCodes";
 import clsx from "clsx";
 
 export interface PhoneValue {
@@ -10,7 +10,7 @@ export interface PhoneValue {
 }
 
 export function isPhoneValid(value: PhoneValue): boolean {
-  return isValidNationalNumber(value.national);
+  return isValidNationalNumber(value.national, value.dial);
 }
 
 export function formatPhoneE164(value: PhoneValue): string {
@@ -86,7 +86,9 @@ export default function PhoneInput({
         />
       </div>
       {touched && !valid && (
-        <p className="text-xs text-red-400 mt-1">Escribe solo números, sin el código de país (7 a 12 dígitos).</p>
+        <p className="text-xs text-red-400 mt-1">
+          Escribe solo números, sin el código de país ({nationalNumberLengthHint(selected.dial)}).
+        </p>
       )}
     </div>
   );

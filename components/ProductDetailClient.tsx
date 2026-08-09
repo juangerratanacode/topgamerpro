@@ -52,6 +52,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       quantity: 1,
       gameFields,
       reloadlyProductId: selectedVariation.reloadlyProductId ?? null,
+      icon: selectedVariation.icon,
+      iconImageUrl: selectedVariation.iconImageUrl,
     });
 
     router.push("/carrito");

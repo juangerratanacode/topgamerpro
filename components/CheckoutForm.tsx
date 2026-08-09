@@ -10,6 +10,7 @@ import { buildWhatsAppMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 import { fileToDataUrl } from "@/lib/ordersStore";
 import { useCurrency, CURRENCY_META as CURRENCY_DISPLAY_META } from "@/lib/currencyStore";
 import PhoneInput, { isPhoneValid, formatPhoneE164, type PhoneValue } from "@/components/PhoneInput";
+import PackageIconDisplay from "@/components/PackageIconDisplay";
 import type { Currency, PaymentMethodId } from "@/lib/types";
 import clsx from "clsx";
 
@@ -311,6 +312,10 @@ export default function CheckoutForm() {
         <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
           {items.map((item) => (
             <div key={item.cartItemId} className="flex items-center gap-3">
+              <PackageIconDisplay
+                variation={{ icon: item.icon ?? "generic", iconImageUrl: item.iconImageUrl }}
+                className="w-7 h-7 shrink-0"
+              />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{item.productName}</p>
                 <p className="text-xs text-brand-textMuted">
