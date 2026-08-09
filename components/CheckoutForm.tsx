@@ -123,9 +123,9 @@ export default function CheckoutForm() {
   }
 
   return (
-    <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
       {/* Left: steps */}
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0">
         {/* Step indicator */}
         <div className="flex items-center gap-3 text-sm font-semibold">
           <StepDot active={step === 1} done={step === 2} n={1} label="Tus datos" />
