@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 interface CreateOrderBody {
   customer: CustomerInfo;
   items: CartItem[];

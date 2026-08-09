@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 
+// Sin esto, Next.js puede optimizar esta ruta como estática (el GET no usa
+// ninguna API "dinámica" a su criterio) y en ese caso el PUT deja de
+// responder — el framework la sirve como asset estático GET-only y cachea
+// un 405 para cualquier otro método, incluso en el edge de Vercel.
+export const dynamic = "force-dynamic";
+
 export interface Banner {
   id: string;
   imageUrl: string;

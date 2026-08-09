@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 
+export const dynamic = "force-dynamic";
+
 const BUCKET = "site-images";
 
 // Sube una imagen (ícono de paquete, foto de producto, portada) a Supabase

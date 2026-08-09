@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 
+export const dynamic = "force-dynamic";
+
 export interface PaymentSettings {
   pagoMovil: { banco: string; telefono: string; cedula: string };
   paypal: { correo: string; paypalMeUser: string };

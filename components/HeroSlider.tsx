@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import { useBanners, type Banner } from "@/lib/bannersStore";
 
 const AUTOPLAY_MS = 6000;
@@ -36,6 +36,12 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
   const next = useCallback(() => goTo(index + 1), [goTo, index]);
   const prev = useCallback(() => goTo(index - 1), [goTo, index]);
 
+  // Parallax: la imagen se desplaza más lento que el scroll de la página
+  // mientras el hero sale de vista, en vez de moverse pegada 1:1 al fondo.
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
+  const parallaxY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
+
   useEffect(() => {
     if (count <= 1) return;
     const t = setInterval(next, AUTOPLAY_MS);
@@ -59,7 +65,10 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-      <div className="relative rounded-3xl overflow-hidden border border-brand-border bg-brand-surface h-56 sm:h-80 lg:h-96">
+      <div
+        ref={sectionRef}
+        className="relative rounded-3xl overflow-hidden border border-brand-border bg-brand-surface h-56 sm:h-80 lg:h-96"
+      >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={slide.id}
@@ -76,13 +85,15 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
               else if (info.offset.x > SWIPE_THRESHOLD) prev();
             }}
           >
-            <Image
-              src={slide.imageUrl}
-              alt={slide.title}
-              fill
-              priority={index === 0}
-              className="object-cover object-center"
-            />
+            <motion.div style={{ y: parallaxY }} className="absolute -inset-x-0 -top-[10%] h-[120%]">
+              <Image
+                src={slide.imageUrl}
+                alt={slide.title}
+                fill
+                priority={index === 0}
+                className="object-cover object-center"
+              />
+            </motion.div>
             <div className="absolute inset-0 bg-gradient-to-r from-brand-bg via-brand-bg/40 to-transparent" />
 
             <div className="absolute inset-0 flex items-center pb-10 sm:pb-8">
