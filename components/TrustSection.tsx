@@ -1,3 +1,9 @@
+"use client";
+
+import { motion } from "framer-motion";
+
+const TITLE = "Recarga tus juegos favoritos con total confianza";
+
 const TRUST_ITEMS = [
   {
     label: "4.8/5 en +500 recargas",
@@ -37,7 +43,19 @@ export default function TrustSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <h2 className="text-center text-base sm:text-lg font-black uppercase tracking-wide text-white mb-4 sm:mb-5">
-        Recarga tus juegos favoritos con total confianza
+        {TITLE.split(" ").map((word, i) => (
+          <span key={i} className="inline-block overflow-hidden align-bottom mr-[0.28em] pb-1 -mb-1">
+            <motion.span
+              className="inline-block"
+              initial={{ y: "110%" }}
+              whileInView={{ y: "0%" }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {word}
+            </motion.span>
+          </span>
+        ))}
       </h2>
 
       <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
