@@ -6,9 +6,7 @@ import HowToRechargeModal from "./HowToRechargeModal";
 
 // Botón flotante fijo que abre el modal de "cómo recargar" (antes navegaba
 // a /como-recargar, que sigue existiendo como página de contenido/SEO pero
-// ya no es a donde lleva este botón). Se ubica arriba del botón flotante de
-// WhatsApp (bottom-6 right-6, ver components/WhatsAppFloatingButton.tsx)
-// para que, si en algún momento se activa, ambos convivan sin taparse.
+// ya no es a donde lleva este botón).
 //
 // En mobile es un círculo chico (solo ícono) en vez de la píldora con
 // texto: así ocupa el mínimo posible sobre el contenido que tiene detrás
@@ -22,7 +20,7 @@ export default function FloatingHelpButton() {
         initial={{ opacity: 0, scale: 0.85, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.6, ease: "easeOut" }}
-        className="fixed bottom-24 right-4 sm:right-6 z-40"
+        className="fixed bottom-6 right-4 sm:right-6 z-40"
       >
         <button
           onClick={() => setOpen(true)}
