@@ -2,9 +2,10 @@ import { WHATSAPP_NUMBER } from "./constants";
 import { getItemPriceForMethod } from "./pricing";
 import type { CartItem, CustomerInfo, OrderPaymentDetails } from "./types";
 
-const PAYMENT_METHOD_NAMES: Record<string, string> = {
+export const PAYMENT_METHOD_NAMES: Record<string, string> = {
   pago_movil_manual: "Pago Móvil",
   paypal: "PayPal",
+  binance: "Binance",
 };
 
 // Puerto directo de la función enviarWhatsApp() del snippet

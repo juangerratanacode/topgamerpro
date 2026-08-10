@@ -1,9 +1,9 @@
 // Tipos centrales del proyecto. Cuando conectemos Supabase, estas
 // interfaces van a coincidir con las tablas reales.
 
-export type Currency = "USD" | "VES" | "COP";
+export type Currency = "USD" | "VES" | "PAYPAL";
 
-export type PaymentMethodId = "pago_movil_manual" | "paypal";
+export type PaymentMethodId = "pago_movil_manual" | "paypal" | "binance";
 
 export type PackageIcon = "diamond" | "coin" | "cp" | "uc" | "robux" | "pass" | "card" | "generic";
 

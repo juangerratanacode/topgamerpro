@@ -1,23 +1,100 @@
 "use client";
 
-// UI del modal de inicio de sesión. Todavía no está conectado a
-// autenticación real — eso llega con Supabase Auth. Se renderiza vía
-// portal directo a <body> porque el Header tiene backdrop-blur, y
-// backdrop-filter crea un "containing block" para elementos position:fixed,
-// lo que rompía el centrado del modal (quedaba pegado dentro del header).
+// UI del modal de inicio de sesión / registro, conectada a Supabase Auth
+// (useAuth de lib/authStore.tsx). Se renderiza vía portal directo a
+// <body> porque el Header tiene backdrop-blur, y backdrop-filter crea un
+// "containing block" para elementos position:fixed, lo que rompía el
+// centrado del modal (quedaba pegado dentro del header).
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
+import { useAuth } from "@/lib/authStore";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { signIn, signUp } = useAuth();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   if (typeof document === "undefined") return null;
+
+  function reset() {
+    setName("");
+    setEmail("");
+    setPassword("");
+    setError(null);
+    setInfo(null);
+  }
+
+  function handleClose() {
+    reset();
+    onClose();
+  }
+
+  async function handleSubmit() {
+    setError(null);
+    setInfo(null);
+
+    if (!email.trim() || !password.trim() || (tab === "register" && !name.trim())) {
+      setError("Completa todos los campos.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (tab === "login") {
+        const { error } = await signIn(email.trim(), password);
+        if (error) {
+          setError(
+            error.toLowerCase().includes("invalid")
+              ? "Correo o contraseña incorrectos."
+              : error
+          );
+          return;
+        }
+        handleClose();
+      } else {
+        const { error } = await signUp(name.trim(), email.trim(), password);
+        if (error) {
+          setError(
+            error.toLowerCase().includes("already registered")
+              ? "Ya existe una cuenta con ese correo."
+              : error
+          );
+          return;
+        }
+        setInfo("¡Cuenta creada! Revisa tu correo para confirmarla antes de iniciar sesión.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      setError("Escribe tu correo arriba y luego pulsa \"¿Olvidaste tu contraseña?\".");
+      return;
+    }
+    if (!supabase) return;
+    setSubmitting(true);
+    setError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: typeof window !== "undefined" ? `${window.location.origin}/mi-cuenta` : undefined,
+    });
+    setSubmitting(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setInfo("Te enviamos un correo con el enlace para restablecer tu contraseña.");
+  }
 
   return createPortal(
     <AnimatePresence>
@@ -26,7 +103,7 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
+          onClick={handleClose}
           className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto"
         >
           <motion.div
@@ -39,7 +116,11 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
           >
             <div className="flex border-b border-brand-border">
               <button
-                onClick={() => setTab("login")}
+                onClick={() => {
+                  setTab("login");
+                  setError(null);
+                  setInfo(null);
+                }}
                 className={clsx(
                   "flex-1 py-3 text-sm font-semibold transition-colors",
                   tab === "login" ? "text-brand-primary border-b-2 border-brand-primary" : "text-brand-textMuted"
@@ -48,7 +129,11 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
                 Iniciar sesión
               </button>
               <button
-                onClick={() => setTab("register")}
+                onClick={() => {
+                  setTab("register");
+                  setError(null);
+                  setInfo(null);
+                }}
                 className={clsx(
                   "flex-1 py-3 text-sm font-semibold transition-colors",
                   tab === "register" ? "text-brand-primary border-b-2 border-brand-primary" : "text-brand-textMuted"
@@ -78,18 +163,18 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
                 placeholder="Contraseña"
               />
 
+              {error && <p className="text-xs text-red-400">{error}</p>}
+              {info && <p className="text-xs text-brand-green">{info}</p>}
+
               {tab === "login" && (
                 <button
                   type="button"
-                  onClick={() =>
-                    alert(
-                      "La recuperación de contraseña por correo llega cuando conectemos Supabase Auth + Resend."
-                    )
-                  }
+                  onClick={handleForgotPassword}
                   className="text-xs text-brand-textMuted hover:text-white underline block"
                 >
                   ¿Olvidaste tu contraseña?
@@ -97,14 +182,11 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
               )}
 
               <button
-                onClick={() =>
-                  alert(
-                    "El inicio de sesión real (y el correo de bienvenida / recuperación de clave) se conecta cuando tengamos Supabase Auth + Resend funcionando. Por ahora esto es solo la interfaz."
-                  )
-                }
-                className="w-full bg-brand-primary hover:bg-brand-primaryDark text-brand-bg font-bold py-3 rounded-full transition-colors"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full bg-brand-primary hover:bg-brand-primaryDark disabled:opacity-60 text-brand-bg font-bold py-3 rounded-full transition-colors"
               >
-                {tab === "login" ? "Entrar" : "Crear cuenta"}
+                {submitting ? "Un momento..." : tab === "login" ? "Entrar" : "Crear cuenta"}
               </button>
 
               <p className="text-center text-xs text-brand-textMuted">

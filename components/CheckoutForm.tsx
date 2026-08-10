@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cartStore";
 import { usePaymentSettings } from "@/lib/paymentSettingsStore";
@@ -10,6 +10,7 @@ import { validatePaymentReference } from "@/lib/validation";
 import { buildWhatsAppMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 import { fileToDataUrl } from "@/lib/ordersStore";
 import { useCurrency, CURRENCY_META as CURRENCY_DISPLAY_META } from "@/lib/currencyStore";
+import { useAuth } from "@/lib/authStore";
 import PhoneInput, { isPhoneValid, formatPhoneE164, type PhoneValue } from "@/components/PhoneInput";
 import PackageIconDisplay from "@/components/PackageIconDisplay";
 import type { Currency, PaymentMethodId } from "@/lib/types";
@@ -18,19 +19,43 @@ import clsx from "clsx";
 const METHOD_META: Record<PaymentMethodId, { label: string; hint: string; currency: Currency }> = {
   pago_movil_manual: { label: "Pago Móvil", hint: "Bolívares", currency: "VES" },
   paypal: { label: "PayPal", hint: "Pago directo", currency: "USD" },
+  binance: { label: "Binance", hint: "USDT", currency: "USD" },
 };
 
-const METHOD_ORDER: PaymentMethodId[] = ["pago_movil_manual", "paypal"];
+// Qué métodos puede elegir el cliente según la moneda que tiene
+// seleccionada en el switcher del header: en Bolívares, solo Pago Móvil;
+// si eligió específicamente "PayPal" como moneda, ese va primero (así ve
+// el precio real con comisión y el método ya viene preseleccionado); en
+// Dólares "genéricos" van Binance primero y PayPal como alternativa.
+function methodsForDisplayCurrency(display: Currency): PaymentMethodId[] {
+  if (display === "VES") return ["pago_movil_manual"];
+  if (display === "PAYPAL") return ["paypal", "binance"];
+  return ["binance", "paypal"];
+}
 
 export default function CheckoutForm() {
   const { items, clearCart } = useCart();
   const { products } = useStorefrontProducts();
-  const { rates } = useCurrency();
+  const { rates, display } = useCurrency();
   const { settings: paymentSettings, hydrated: paymentsHydrated } = usePaymentSettings();
+  const { user, session } = useAuth();
   const router = useRouter();
 
+  // Los métodos disponibles dependen de la moneda que el cliente eligió en
+  // el switcher del header: en Bs. solo Pago Móvil, en USD/COP Binance o
+  // PayPal — así el cliente nunca ve un método que no aplica a su moneda.
+  const availableMethods = methodsForDisplayCurrency(display);
+
   const [step, setStep] = useState<1 | 2>(1);
-  const [method, setMethod] = useState<PaymentMethodId>("pago_movil_manual");
+  const [method, setMethod] = useState<PaymentMethodId>(availableMethods[0]);
+
+  // Si el cliente cambia de moneda (ej. de Bs. a USD) mientras está en el
+  // checkout, el método activo puede dejar de ser válido — lo reajustamos
+  // al primero disponible para esa moneda.
+  useEffect(() => {
+    if (!availableMethods.includes(method)) setMethod(availableMethods[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [display]);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,6 +64,19 @@ export default function CheckoutForm() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [paypalOpened, setPaypalOpened] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Si el cliente tiene sesión iniciada, le precargamos su nombre/correo
+  // guardados en la cuenta para que no los vuelva a escribir — sigue
+  // pudiendo editarlos, esto es solo un punto de partida.
+  useEffect(() => {
+    if (!user) return;
+    const fullName = (user.user_metadata?.full_name as string | undefined) ?? "";
+    const [fName, ...rest] = fullName.split(" ");
+    setFirstName((prev) => prev || fName || "");
+    setLastName((prev) => prev || rest.join(" "));
+    setEmail((prev) => prev || user.email || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const currency = METHOD_META[method].currency;
   const total = getCartTotalForMethod(items, method);
@@ -64,9 +102,10 @@ export default function CheckoutForm() {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
     isPhoneValid(phone);
 
-  // Para PayPal el "comprobante" es el pago mismo hecho a través del botón;
-  // no exigimos captura, solo el ID de transacción.
-  const receiptRequired = method !== "paypal";
+  // Para PayPal el "comprobante" es el pago mismo hecho a través del
+  // botón; Pago Móvil y Binance sí piden captura de pantalla porque no hay
+  // forma automática de validarlos.
+  const receiptRequired = method === "pago_movil_manual" || method === "binance";
   const canSubmit =
     step1Valid && reference.trim().length > 0 && (!receiptRequired || receiptFile !== null);
 
@@ -88,7 +127,10 @@ export default function CheckoutForm() {
 
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           customer,
           items,
@@ -105,7 +147,11 @@ export default function CheckoutForm() {
         {
           method,
           reference,
-          receiptUrl: receiptDataUrl ? "adjunto en este chat" : "pago realizado vía PayPal",
+          receiptUrl: receiptDataUrl
+            ? "adjunto en este chat"
+            : method === "paypal"
+            ? "pago realizado vía PayPal"
+            : "pago realizado vía Binance",
         },
         items,
         orderId,
@@ -197,8 +243,8 @@ export default function CheckoutForm() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {METHOD_ORDER.map((m) => (
+            <div className={clsx("grid gap-2", availableMethods.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+              {availableMethods.map((m) => (
                 <button
                   key={m}
                   onClick={() => {
@@ -227,6 +273,15 @@ export default function CheckoutForm() {
                 Cédula: {paymentSettings.pagoMovil.cedula}
               </PaymentBox>
             )}
+            {method === "binance" && (
+              <PaymentBox title="Datos para el pago por Binance">
+                Envía {formattedTotal} en USDT a través de Binance Pay o P2P a:
+                <br />
+                Correo/ID: {paymentSettings.binance.correoOId}
+                <br />
+                Nombre: {paymentSettings.binance.nombre}
+              </PaymentBox>
+            )}
             {method === "paypal" && (
               <div className="space-y-3">
                 <PaymentBox title="Pago directo con PayPal">
@@ -253,14 +308,18 @@ export default function CheckoutForm() {
             <input
               className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
               placeholder={
-                method === "paypal" ? "ID de transacción de PayPal" : "Últimos 4 dígitos de la referencia"
+                method === "paypal"
+                  ? "ID de transacción de PayPal"
+                  : method === "binance"
+                  ? "Últimos 6 dígitos del ID de transacción"
+                  : "Últimos 4 dígitos de la referencia"
               }
               value={reference}
               onChange={(e) =>
                 setReference(method === "paypal" ? e.target.value : e.target.value.replace(/[^0-9]/g, ""))
               }
               inputMode={method === "paypal" ? "text" : "numeric"}
-              maxLength={method === "paypal" ? undefined : 4}
+              maxLength={method === "paypal" ? undefined : method === "binance" ? 6 : 4}
             />
 
             {receiptRequired && (

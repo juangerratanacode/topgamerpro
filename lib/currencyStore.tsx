@@ -8,19 +8,25 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { Currency } from "./types";
+import { getPaypalPrice } from "./pricing";
 
 const STORAGE_KEY = "pitanga_currency_v1";
 
 export const CURRENCY_META: Record<Currency, { label: string; symbol: string; flag: string }> = {
   USD: { label: "Dólar (USDT)", symbol: "$", flag: "🇺🇸" },
   VES: { label: "Bolívares", symbol: "Bs.", flag: "🇻🇪" },
-  COP: { label: "Pesos colombianos", symbol: "$", flag: "🇨🇴" },
+  // No es un país — el ícono real de PayPal se dibuja aparte en
+  // CurrencySwitcher.tsx; este emoji queda solo de respaldo.
+  PAYPAL: { label: "PayPal", symbol: "$", flag: "🅿️" },
 };
 
 export const DEFAULT_RATES: Record<Currency, number> = {
   USD: 1,
   VES: 130, // Bs por USD — editable en /admin
-  COP: 4100, // COP por USD — editable en /admin
+  // PayPal no usa una tasa fija: el precio se calcula con la misma fórmula
+  // de comisión (getPaypalPrice) que ya usa el checkout. Este valor no se
+  // usa para convertir, solo existe para que el tipo quede completo.
+  PAYPAL: 1,
 };
 
 interface CurrencyState {
@@ -34,20 +40,31 @@ interface CurrencyState {
 
 const CurrencyContext = createContext<CurrencyState | null>(null);
 
+// Moneda con la que abre la web por defecto (antes de que el visitante
+// elija algo distinto) — la mayoría de los clientes son venezolanos, así
+// que arranca en Bolívares en vez de Dólares.
+const DEFAULT_DISPLAY: Currency = "VES";
+
 function load(): { display: Currency; rates: Record<Currency, number> } {
-  if (typeof window === "undefined") return { display: "USD", rates: DEFAULT_RATES };
+  if (typeof window === "undefined") return { display: DEFAULT_DISPLAY, rates: DEFAULT_RATES };
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { display: "USD", rates: DEFAULT_RATES };
+    if (!raw) return { display: DEFAULT_DISPLAY, rates: DEFAULT_RATES };
     const parsed = JSON.parse(raw);
-    return { display: parsed.display ?? "USD", rates: { ...DEFAULT_RATES, ...parsed.rates } };
+    // Si alguien tiene guardada la vieja moneda "COP" (ya retirada) de una
+    // visita anterior, cae de vuelta al default en vez de romper el selector.
+    const savedDisplay: Currency =
+      parsed.display === "USD" || parsed.display === "VES" || parsed.display === "PAYPAL"
+        ? parsed.display
+        : DEFAULT_DISPLAY;
+    return { display: savedDisplay, rates: { ...DEFAULT_RATES, ...parsed.rates } };
   } catch {
-    return { display: "USD", rates: DEFAULT_RATES };
+    return { display: DEFAULT_DISPLAY, rates: DEFAULT_RATES };
   }
 }
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [display, setDisplayState] = useState<Currency>("USD");
+  const [display, setDisplayState] = useState<Currency>(DEFAULT_DISPLAY);
   const [rates, setRates] = useState<Record<Currency, number>>(DEFAULT_RATES);
   const [hydrated, setHydrated] = useState(false);
 
@@ -70,7 +87,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const convert = useCallback(
-    (usd: number) => usd * (rates[display] ?? 1),
+    (usd: number) => (display === "PAYPAL" ? getPaypalPrice(usd) : usd * (rates[display] ?? 1)),
     [display, rates]
   );
 
@@ -78,7 +95,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     (usd: number) => {
       const converted = convert(usd);
       const { symbol } = CURRENCY_META[display];
-      const decimals = display === "USD" ? 2 : 0;
+      const decimals = display === "VES" ? 0 : 2;
       return `${symbol}${converted.toLocaleString("es-VE", {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,

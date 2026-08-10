@@ -28,5 +28,8 @@ export function validatePaymentReference(method: string, reference: string): str
   if (method === "pago_movil_manual" && cleaned.length !== 4) {
     return "La referencia debe tener exactamente 4 dígitos.";
   }
+  if (method === "binance" && cleaned.length !== 6) {
+    return "La referencia debe tener exactamente los últimos 6 dígitos del ID de la transacción.";
+  }
   return null;
 }

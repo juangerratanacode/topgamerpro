@@ -1,4 +1,4 @@
-import type { CartItem, PackageIcon, Product } from "./types";
+import type { CartItem, PackageIcon, Product, ProductVariation } from "./types";
 
 // Fórmula de respaldo, extraída de comparar pitcharge.com vs
 // paypal.pitcharge.com: precio_paypal = precio_base * 1.057 + 0.31
@@ -11,6 +11,16 @@ const PAYPAL_FIXED_FEE = 0.31;
 export function getPaypalPrice(basePriceUsd: number): number {
   const price = basePriceUsd * (1 + PAYPAL_PERCENT_FEE) + PAYPAL_FIXED_FEE;
   return Math.round(price * 100) / 100;
+}
+
+// Precio en USD que se le muestra al cliente cuando navega con la moneda
+// "PayPal" seleccionada: siempre respeta el precio manual que se cargó en
+// el panel de admin (variation.priceUsdPaypal) si existe — ese es EL
+// precio real del negocio, definido por nosotros, no una comparación con
+// la web de otro. Solo si el admin no cargó nada cae en la fórmula de
+// respaldo (comisión estándar de PayPal).
+export function getPaypalDisplayPrice(v: ProductVariation): number {
+  return v.priceUsdPaypal ?? getPaypalPrice(v.priceUsd);
 }
 
 export function getPriceForMethod(basePriceUsd: number, method: string): number {

@@ -61,6 +61,25 @@ export default function PagosPage() {
             />
           </div>
         </div>
+        <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
+          <h2 className="font-bold mb-1">Binance</h2>
+          <p className="text-xs text-brand-textMuted mb-4">
+            Se muestra a los clientes que pagan en Dólares — piden los últimos 6 dígitos del ID de
+            la transacción de Binance Pay/P2P como referencia.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Field
+              label="Correo o ID de Binance Pay"
+              value={settings.binance.correoOId}
+              onChange={(v) => update("binance", { correoOId: v })}
+            />
+            <Field
+              label="Nombre del titular"
+              value={settings.binance.nombre}
+              onChange={(v) => update("binance", { nombre: v })}
+            />
+          </div>
+        </div>
       </div>
 
       <SaveBar onSave={save} saving={saving} error={saveError} />

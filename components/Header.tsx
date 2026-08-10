@@ -9,6 +9,7 @@ import Logo from "./Logo";
 import LoginModal from "./LoginModal";
 import CurrencySwitcher from "./CurrencySwitcher";
 import SearchBar from "./SearchBar";
+import { useAuth } from "@/lib/authStore";
 
 const MOBILE_NAV_LINKS = [
   { href: "/", label: "Inicio" },
@@ -19,6 +20,8 @@ const MOBILE_NAV_LINKS = [
 export default function Header() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0];
 
   return (
     <header className="bg-brand-surface/95 backdrop-blur border-b border-brand-border sticky top-0 z-40">
@@ -69,15 +72,36 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  setLoginOpen(true);
-                }}
-                className="py-2.5 text-left text-sm font-semibold text-brand-textMuted hover:text-white transition-colors"
-              >
-                Iniciar sesión
-              </button>
+              {user ? (
+                <>
+                  <Link
+                    href="/mi-cuenta"
+                    onClick={() => setMenuOpen(false)}
+                    className="py-2.5 text-left text-sm font-semibold text-brand-textMuted hover:text-white transition-colors"
+                  >
+                    Mi cuenta{firstName ? ` (${firstName})` : ""}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      signOut();
+                    }}
+                    className="py-2.5 text-left text-sm font-semibold text-brand-textMuted hover:text-white transition-colors"
+                  >
+                    Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setLoginOpen(true);
+                  }}
+                  className="py-2.5 text-left text-sm font-semibold text-brand-textMuted hover:text-white transition-colors"
+                >
+                  Iniciar sesión
+                </button>
+              )}
             </div>
           </motion.nav>
         )}
@@ -111,20 +135,45 @@ export default function Header() {
 
         <div className="flex items-center gap-3 shrink-0">
           <CurrencySwitcher />
-          <button
-            onClick={() => setLoginOpen(true)}
-            className="hidden sm:flex items-center gap-2 text-sm font-semibold text-brand-textMuted hover:text-white transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-            Iniciar sesión
-          </button>
+          {user ? (
+            <div className="hidden sm:flex items-center gap-3">
+              <Link
+                href="/mi-cuenta"
+                className="flex items-center gap-2 text-sm font-semibold text-brand-textMuted hover:text-white transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                {firstName ? `Hola, ${firstName}` : "Mi cuenta"}
+              </Link>
+              <button
+                onClick={signOut}
+                className="text-xs text-brand-textMuted hover:text-white underline transition-colors"
+              >
+                Salir
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setLoginOpen(true)}
+              className="hidden sm:flex items-center gap-2 text-sm font-semibold text-brand-textMuted hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              Iniciar sesión
+            </button>
+          )}
           <CartBadge />
         </div>
       </div>

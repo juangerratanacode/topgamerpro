@@ -5,12 +5,19 @@ import { motion } from "framer-motion";
 import type { Product } from "@/lib/types";
 import { getAverageRating } from "@/lib/reviews";
 import { useCurrency } from "@/lib/currencyStore";
+import { getPaypalDisplayPrice } from "@/lib/pricing";
 import StarRating from "./StarRating";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const cheapest = Math.min(...product.variations.map((v) => v.priceUsd));
+  const cheapestVariation = product.variations.reduce((min, v) => (v.priceUsd < min.priceUsd ? v : min));
   const { average, count } = getAverageRating(product.slug);
   const { display, format } = useCurrency();
+
+  // En modo PayPal el precio real es el que se cargó a mano en el admin
+  // (o la fórmula de respaldo si no se cargó ninguno) — no una conversión
+  // genérica del precio base, que ignoraría ese ajuste manual.
+  const displayPrice =
+    display === "PAYPAL" ? `$${getPaypalDisplayPrice(cheapestVariation).toFixed(2)}` : format(cheapestVariation.priceUsd);
 
   return (
     <motion.div
@@ -46,10 +53,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="mt-auto pt-2 flex items-end justify-between">
           <div>
             <span className="block text-[10px] text-brand-textMuted">desde</span>
-            <span className="text-brand-green font-bold text-sm leading-none">{format(cheapest)}</span>
-            {display !== "USD" && (
-              <span className="block text-[10px] text-brand-textMuted">${cheapest.toFixed(2)} USD</span>
-            )}
+            <span className="text-brand-green font-bold text-sm leading-none">{displayPrice}</span>
           </div>
           <span className="text-xs font-semibold text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
             Ver más →

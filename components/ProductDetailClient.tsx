@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import type { Product, ProductVariation, GameFieldValue } from "@/lib/types";
 import { useCart } from "@/lib/cartStore";
 import { useCurrency } from "@/lib/currencyStore";
+import { getPaypalDisplayPrice } from "@/lib/pricing";
 import { getVariationFields } from "@/lib/mockProducts";
 import { validateGameFields } from "@/lib/validation";
 import GameSpecialNotice from "./GameSpecialNotice";
@@ -24,6 +25,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
   const activeFields = getVariationFields(product, selectedVariation.id);
   const { average, count } = getAverageRating(product.slug);
+
+  // En modo PayPal, el precio real es el que se cargó a mano en el admin
+  // para este paquete (o la fórmula de respaldo si no se cargó ninguno) —
+  // no la conversión genérica del precio base.
+  function formatVariationPrice(v: ProductVariation) {
+    return display === "PAYPAL" ? `$${getPaypalDisplayPrice(v).toFixed(2)}` : format(v.priceUsd);
+  }
 
   function scrollToReviews() {
     document.getElementById("resenas")?.scrollIntoView({ behavior: "smooth" });
@@ -135,10 +143,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               >
                 <PackageIconDisplay variation={v} className="w-9 h-9" />
                 <div className="text-xs font-semibold">{v.label}</div>
-                <div className="text-brand-green font-bold text-sm">{format(v.priceUsd)}</div>
-                {display !== "USD" && (
-                  <div className="text-[10px] text-brand-textMuted">${v.priceUsd.toFixed(2)} USD</div>
-                )}
+                <div className="text-brand-green font-bold text-sm">{formatVariationPrice(v)}</div>
               </motion.button>
             ))}
           </div>
@@ -224,7 +229,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           onClick={handleAddToCart}
           className="w-full bg-brand-primary hover:bg-brand-primaryDark text-white font-bold py-3 rounded-full transition-colors"
         >
-          Agregar al carrito — {format(selectedVariation.priceUsd)}
+          Agregar al carrito — {formatVariationPrice(selectedVariation)}
         </motion.button>
       </motion.div>
     </div>

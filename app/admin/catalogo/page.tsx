@@ -75,11 +75,12 @@ export default function AdminPage() {
         <h2 className="font-bold text-sm mb-1">Tasas de cambio (moneda de visualización)</h2>
         <p className="text-xs text-brand-textMuted mb-3">
           Los precios se guardan en USD; esto solo define cómo se muestran al cliente cuando elige
-          ver Bolívares o Pesos colombianos en el selector de moneda.
+          ver Bolívares en el selector de moneda. (PayPal no usa una tasa fija — se calcula
+          automáticamente con la comisión de cada paquete, ver más abajo "Precio PayPal").
         </p>
         <div className="grid sm:grid-cols-2 gap-3 max-w-md">
           {(Object.keys(CURRENCY_META) as Currency[])
-            .filter((c) => c !== "USD")
+            .filter((c) => c !== "USD" && c !== "PAYPAL")
             .map((c) => (
               <div key={c}>
                 <label className="block text-xs font-semibold text-brand-textMuted mb-1">

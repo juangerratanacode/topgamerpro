@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
+import { sendOrderConfirmationEmail } from "@/lib/orderEmail";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,20 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json()) as CreateOrderBody;
   const { customer, items, currency, payment, totalUsd } = body;
+
+  // Si el cliente tiene sesión iniciada, el front manda el access token en
+  // el header Authorization — lo verificamos acá (nunca confiamos en un
+  // user_id que venga en el body) para vincular el pedido a su cuenta y
+  // que sume puntos e historial en /mi-cuenta. Si no hay token, o no es
+  // válido, el pedido sigue como invitado (user_id null) sin romper el
+  // checkout.
+  let userId: string | null = null;
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    const { data } = await supabaseAdmin.auth.getUser(token);
+    userId = data.user?.id ?? null;
+  }
 
   let receiptUrl: string | null = null;
   if (payment.receiptDataUrl) {
@@ -46,6 +61,7 @@ export async function POST(req: NextRequest) {
       customer_last_name: customer.lastName,
       customer_email: customer.email,
       customer_phone: customer.phone,
+      user_id: userId,
       currency,
       payment_method: payment.method,
       payment_reference: payment.reference,
@@ -80,6 +96,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
   }
+
+  // El pedido ya quedó guardado — el correo es un extra sobre la
+  // confirmación por WhatsApp, así que un fallo acá no debe tumbar la
+  // respuesta ni hacer que el cliente vea un error de checkout.
+  await sendOrderConfirmationEmail({
+    customer,
+    items,
+    method: payment.method,
+    orderId: order.id,
+    totalUsd,
+    createdAt: new Date(order.created_at ?? Date.now()),
+  });
 
   return NextResponse.json({ orderId: order.id, status: order.status });
 }

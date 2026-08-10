@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export interface PaymentSettings {
   pagoMovil: { banco: string; telefono: string; cedula: string };
   paypal: { correo: string; paypalMeUser: string };
+  binance: { correoOId: string; nombre: string };
 }
 
 export async function GET() {
@@ -18,6 +19,7 @@ export async function GET() {
   const settings: PaymentSettings = {
     pagoMovil: data.pago_movil,
     paypal: data.paypal,
+    binance: data.binance ?? { correoOId: "", nombre: "" },
   };
 
   return NextResponse.json({ settings });
@@ -36,6 +38,7 @@ export async function PUT(req: NextRequest) {
     .update({
       pago_movil: settings.pagoMovil,
       paypal: settings.paypal,
+      binance: settings.binance,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);

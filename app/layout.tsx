@@ -8,6 +8,7 @@ import ScrollMemory from "@/components/ScrollMemory";
 import FloatingHelpButton from "@/components/FloatingHelpButton";
 import { CartProvider } from "@/lib/cartStore";
 import { CurrencyProvider } from "@/lib/currencyStore";
+import { AuthProvider } from "@/lib/authStore";
 
 // Poppins: geométrica, muy usada en marcas tech/retail, buen contraste
 // de pesos entre titulares y texto — fuente de todo el sitio.
@@ -30,17 +31,19 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${poppins.variable} font-sans min-h-screen flex flex-col bg-brand-bg text-white`}>
-        <CurrencyProvider>
-          <CartProvider>
-            <Suspense fallback={null}>
-              <ScrollMemory />
-              <Header />
-            </Suspense>
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <FloatingHelpButton />
-          </CartProvider>
-        </CurrencyProvider>
+        <AuthProvider>
+          <CurrencyProvider>
+            <CartProvider>
+              <Suspense fallback={null}>
+                <ScrollMemory />
+                <Header />
+              </Suspense>
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <FloatingHelpButton />
+            </CartProvider>
+          </CurrencyProvider>
+        </AuthProvider>
       </body>
     </html>
   );
