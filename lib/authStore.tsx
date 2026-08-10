@@ -52,7 +52,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: {
+        data: { full_name: name },
+        // Sin esto, el link del correo de confirmación usa el "Site URL"
+        // configurado en el proyecto de Supabase — que quedó en
+        // localhost:3000 desde que se armó en desarrollo. Esto fuerza la
+        // URL real sin importar esa configuración (igual hay que agregar
+        // el dominio de producción a la lista de Redirect URLs permitidas
+        // en Supabase, o el link va a fallar con "requested path is invalid").
+        emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/mi-cuenta` : undefined,
+      },
     });
     return { error: error?.message ?? null };
   }, []);
