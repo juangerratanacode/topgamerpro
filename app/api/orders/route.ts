@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
-import { sendOrderConfirmationEmail } from "@/lib/orderEmail";
+import { sendOrderStatusEmail } from "@/lib/orderEmail";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   // El pedido ya quedó guardado — el correo es un extra sobre la
   // confirmación por WhatsApp, así que un fallo acá no debe tumbar la
   // respuesta ni hacer que el cliente vea un error de checkout.
-  await sendOrderConfirmationEmail({
+  await sendOrderStatusEmail("recibido", {
     customer,
     items,
     method: payment.method,
@@ -161,13 +161,54 @@ export async function GET(req: NextRequest) {
 }
 
 // Cambiar el estado de un pedido (confirmar / rechazar / volver a pendiente).
+// Al confirmar o rechazar, le avisamos al cliente por correo — igual que la
+// confirmación de recepción, un fallo acá nunca debe romper el cambio de
+// estado en sí.
 export async function PATCH(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return NextResponse.json({ error: "No autorizado" }, { status: auth.status });
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase no configurado" }, { status: 500 });
 
   const { id, status } = (await req.json()) as { id: string; status: string };
-  const { error } = await supabaseAdmin.from("orders").update({ status }).eq("id", id);
+  const { data: order, error } = await supabaseAdmin
+    .from("orders")
+    .update({ status })
+    .eq("id", id)
+    .select("*, order_items(*)")
+    .single();
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (order && (status === "confirmado" || status === "rechazado")) {
+    const customer: CustomerInfo = {
+      firstName: order.customer_first_name,
+      lastName: order.customer_last_name,
+      email: order.customer_email,
+      phone: order.customer_phone,
+    };
+    const items: CartItem[] = (order.order_items ?? []).map((it: any) => ({
+      cartItemId: it.id,
+      productId: it.product_id,
+      productSlug: it.product_slug,
+      productName: it.product_name,
+      variationId: it.variation_id,
+      variationLabel: it.variation_label,
+      unitPriceUsd: Number(it.unit_price_usd),
+      unitPriceUsdPaypal: it.unit_price_usd_paypal != null ? Number(it.unit_price_usd_paypal) : undefined,
+      quantity: it.quantity,
+      gameFields: it.game_fields ?? [],
+      reloadlyProductId: it.reloadly_product_id,
+    }));
+
+    await sendOrderStatusEmail(status === "confirmado" ? "confirmado" : "cancelado", {
+      customer,
+      items,
+      method: order.payment_method,
+      orderId: order.id,
+      totalUsd: Number(order.total_usd),
+      createdAt: new Date(order.created_at),
+    });
+  }
+
   return NextResponse.json({ ok: true });
 }

@@ -120,6 +120,14 @@ export default function CheckoutForm() {
       return;
     }
 
+    // Abrimos la pestaña YA, antes de cualquier "await" — los navegadores
+    // (sobre todo en mobile) solo permiten window.open() sin bloqueo si
+    // pasa de forma síncrona dentro del gesto de click. Si se llama después
+    // de un fetch/await, ya "perdió" ese permiso y el popup se bloquea sin
+    // avisar. Abrimos en blanco y recién le seteamos la URL real cuando el
+    // mensaje de WhatsApp está listo.
+    const waWindow = window.open("about:blank", "_blank");
+
     setSubmitting(true);
     try {
       const customer = { firstName, lastName, email, phone: formatPhoneE164(phone) };
@@ -160,8 +168,16 @@ export default function CheckoutForm() {
       const waUrl = buildWhatsAppUrl(message);
 
       clearCart();
-      window.open(waUrl, "_blank");
-      router.push(`/pedido-confirmado?orderId=${orderId}`);
+      if (waWindow) {
+        // Redirige la pestaña que ya estaba abierta — esto sí lo permiten
+        // los navegadores porque la ventana ya existía.
+        waWindow.location.href = waUrl;
+      } else {
+        // Bloqueado igual (raro, pero pasa): mandamos la URL de WhatsApp a
+        // la página de confirmación para que el cliente tenga un botón real
+        // con el que abrirlo a mano.
+      }
+      router.push(`/pedido-confirmado?orderId=${orderId}&wa=${encodeURIComponent(waUrl)}`);
     } finally {
       setSubmitting(false);
     }

@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+
+// Primer segmento de la ruta (ej. "/mi-cuenta/pedidos" -> "mi-cuenta"). Se
+// usa para detectar navegación "interna" dentro de un mismo panel con
+// layout persistente (mi-cuenta, admin) — ahí el usuario espera que el
+// contenido cambie en el lugar, sin que la página salte a arriba de todo.
+function topSegment(pathname: string): string {
+  return pathname.split("/").filter(Boolean)[0] ?? "";
+}
 
 // El navegador intenta restaurar el scroll solo al volver atrás, pero el
 // contenido real (imágenes del catálogo, hero, animaciones de entrada)
@@ -18,6 +26,7 @@ const STABLE_FRAMES_NEEDED = 6; // ~6 frames seguidos sin cambio de altura
 
 export default function ScrollMemory() {
   const pathname = usePathname();
+  const prevPathname = useRef<string | null>(null);
 
   useEffect(() => {
     // Apagamos la restauración nativa: si no, compite con la nuestra y
@@ -28,6 +37,15 @@ export default function ScrollMemory() {
   }, []);
 
   useEffect(() => {
+    const isInternalTabSwitch =
+      prevPathname.current !== null && topSegment(prevPathname.current) === topSegment(pathname);
+    prevPathname.current = pathname;
+
+    // Cambiar de "pestaña" dentro del mismo panel (ej. mi-cuenta/pedidos ->
+    // mi-cuenta/perfil) no debe mover el scroll para nada — el layout
+    // (sidebar, header) sigue montado, solo cambia el contenido.
+    if (isInternalTabSwitch) return;
+
     const key = `scrollpos:${pathname}`;
     const saved = sessionStorage.getItem(key);
 

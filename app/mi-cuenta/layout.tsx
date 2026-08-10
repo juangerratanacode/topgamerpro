@@ -94,8 +94,9 @@ export default function MiCuentaLayout({ children }: { children: React.ReactNode
         </nav>
       </aside>
 
-      {/* Contenido */}
-      <div className="min-w-0">{children}</div>
+      {/* Contenido — min-height evita que el layout salte al pasar de una
+          sección corta (Perfil) a una larga (Pedidos) o viceversa. */}
+      <div className="min-w-0 min-h-[60vh]">{children}</div>
     </div>
   );
 }

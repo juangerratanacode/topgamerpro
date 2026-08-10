@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollMemory from "@/components/ScrollMemory";
 import FloatingHelpButton from "@/components/FloatingHelpButton";
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import { CartProvider } from "@/lib/cartStore";
 import { CurrencyProvider } from "@/lib/currencyStore";
 import { AuthProvider } from "@/lib/authStore";
@@ -40,6 +41,7 @@ export default function RootLayout({
               </Suspense>
               <main className="flex-1">{children}</main>
               <Footer />
+              <WhatsAppFloatingButton />
               <FloatingHelpButton />
             </CartProvider>
           </CurrencyProvider>
