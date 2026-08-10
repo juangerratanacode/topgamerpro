@@ -12,6 +12,7 @@ interface CreateOrderBody {
   currency: Currency;
   payment: { method: PaymentMethodId; reference: string; receiptDataUrl?: string | null };
   totalUsd: number;
+  totalConverted?: number;
 }
 
 // Crea un pedido nuevo: sube el comprobante (si vino) a Storage y guarda
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase no configurado" }, { status: 500 });
 
   const body = (await req.json()) as CreateOrderBody;
-  const { customer, items, currency, payment, totalUsd } = body;
+  const { customer, items, currency, payment, totalUsd, totalConverted } = body;
 
   // Si el cliente tiene sesión iniciada, el front manda el access token en
   // el header Authorization — lo verificamos acá (nunca confiamos en un
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
       receipt_url: receiptUrl,
       status: "pendiente",
       total_usd: totalUsd,
+      total_converted: totalConverted ?? null,
     })
     .select()
     .single();
@@ -106,6 +108,8 @@ export async function POST(req: NextRequest) {
     method: payment.method,
     orderId: order.id,
     totalUsd,
+    currency,
+    totalConverted: totalConverted ?? totalUsd,
     createdAt: new Date(order.created_at ?? Date.now()),
   });
 
@@ -206,6 +210,8 @@ export async function PATCH(req: NextRequest) {
       method: order.payment_method,
       orderId: order.id,
       totalUsd: Number(order.total_usd),
+      currency: order.currency,
+      totalConverted: order.total_converted != null ? Number(order.total_converted) : Number(order.total_usd),
       createdAt: new Date(order.created_at),
     });
   }

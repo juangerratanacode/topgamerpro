@@ -145,6 +145,7 @@ export default function CheckoutForm() {
           currency,
           payment: { method, reference, receiptDataUrl },
           totalUsd: total,
+          totalConverted: convertedTotal,
         }),
       });
       const data = await res.json();
