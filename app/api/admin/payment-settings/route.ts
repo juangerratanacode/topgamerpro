@@ -19,7 +19,13 @@ export async function GET() {
   const settings: PaymentSettings = {
     pagoMovil: data.pago_movil,
     paypal: data.paypal,
-    binance: data.binance ?? { correoOId: "", nombre: "" },
+    // El registro puede traer la forma vieja ({ cuenta }) de antes de que
+    // se agregaran estos campos — normalizamos acá para que nunca lleguen
+    // "undefined" al checkout si el admin todavía no guardó nada nuevo.
+    binance: {
+      correoOId: data.binance?.correoOId ?? "",
+      nombre: data.binance?.nombre ?? "",
+    },
   };
 
   return NextResponse.json({ settings });

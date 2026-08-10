@@ -106,8 +106,14 @@ export default function CheckoutForm() {
   // botón; Pago Móvil y Binance sí piden captura de pantalla porque no hay
   // forma automática de validarlos.
   const receiptRequired = method === "pago_movil_manual" || method === "binance";
+  // No basta con "no vacío" — tiene que cumplir el largo exacto que pide
+  // cada método (4 dígitos Pago Móvil, 6 Binance) antes de habilitar el
+  // botón, no solo al hacer click.
   const canSubmit =
-    step1Valid && reference.trim().length > 0 && (!receiptRequired || receiptFile !== null);
+    step1Valid &&
+    reference.trim().length > 0 &&
+    !validatePaymentReference(method, reference) &&
+    (!receiptRequired || receiptFile !== null);
 
   async function handleSubmit() {
     const refError = validatePaymentReference(method, reference);
@@ -230,8 +236,8 @@ export default function CheckoutForm() {
               <PhoneInput value={phone} onChange={setPhone} />
             </div>
             <p className="text-xs text-brand-textMuted">
-              Lo usamos solo para contactarte sobre tu recarga si hay algún problema. No necesitas
-              crear una cuenta — puedes continuar como invitado.
+              Lo usamos solo para contactarte sobre tu recarga si hay algún problema.
+              {!user && " No necesitas crear una cuenta — puedes continuar como invitado."}
             </p>
             <button
               onClick={() => step1Valid && setStep(2)}
