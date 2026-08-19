@@ -80,6 +80,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             src={product.imageUrl}
             alt={product.name}
             fill
+            sizes="(max-width: 640px) 100vw, 50vw"
             className="object-cover"
             priority
           />
@@ -118,7 +119,11 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         </div>
 
         {product.description && (
-          <p className="text-brand-textMuted mb-4 text-sm">{product.description}</p>
+          <div className="mb-5 bg-brand-surface border border-brand-border rounded-xl p-4">
+            <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line">
+              {product.description}
+            </p>
+          </div>
         )}
 
         <GameSpecialNotice product={product} />

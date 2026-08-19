@@ -70,6 +70,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
             src={product.imageUrl}
             alt=""
             fill
+            sizes="100vw"
             priority
             className="object-cover scale-110 blur-2xl opacity-60 sm:opacity-50"
           />

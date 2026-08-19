@@ -10,6 +10,7 @@ export default function SoportePage() {
           src="/soporte/soporte-hero.png"
           alt=""
           fill
+          sizes="100vw"
           priority
           className="object-cover object-right"
         />

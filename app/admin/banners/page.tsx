@@ -90,7 +90,7 @@ function BannerCard({
     <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
       <div className="flex items-start gap-4 mb-4">
         <label className="relative w-32 h-20 shrink-0 rounded-lg overflow-hidden border border-brand-border cursor-pointer group bg-brand-surfaceLight">
-          <Image src={banner.imageUrl} alt="" fill className="object-cover" />
+          <Image src={banner.imageUrl} alt="" fill sizes="128px" className="object-cover" />
           <span className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
             Cambiar
           </span>

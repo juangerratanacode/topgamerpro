@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       const buffer = Buffer.from(base64, "base64");
       const { error: uploadError } = await supabaseAdmin.storage
         .from("receipts")
-        .upload(path, buffer, { contentType: mime, upsert: false });
+        .upload(path, buffer, { contentType: mime, upsert: false, cacheControl: "31536000" });
       if (!uploadError) {
         const { data: publicUrl } = supabaseAdmin.storage.from("receipts").getPublicUrl(path);
         receiptUrl = publicUrl.publicUrl;

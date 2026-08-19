@@ -138,7 +138,7 @@ export default function AdminPage() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     {product.imageUrl && (
-                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                      <Image src={product.imageUrl} alt={product.name} fill sizes="56px" className="object-cover" />
                     )}
                     <span className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
                       Cambiar
@@ -224,9 +224,14 @@ export default function AdminPage() {
                     <textarea
                       value={product.description ?? ""}
                       onChange={(e) => updateProduct(product.id, { description: e.target.value })}
-                      className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-3 py-2 text-sm"
-                      rows={2}
+                      className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-3 py-2.5 text-sm leading-relaxed resize-y"
+                      rows={6}
+                      placeholder="Explicá cómo funciona la recarga de este juego, requisitos de la cuenta, etc."
                     />
+                    <p className="text-[11px] text-brand-textMuted mt-1">
+                      Los saltos de línea (Enter) se respetan tal cual en la página del producto —
+                      usalos para separar párrafos.
+                    </p>
                   </div>
 
                   <div>

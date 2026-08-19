@@ -20,6 +20,7 @@ export default function HeroSection() {
             src="/hero/hero-visual.png"
             alt=""
             fill
+            sizes="100vw"
             priority
             className="object-cover object-center opacity-70"
           />

@@ -104,6 +104,7 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
                   src={slide.imageUrl}
                   alt={slide.title}
                   fill
+                  sizes="(max-width: 1280px) 100vw, 1280px"
                   priority={index === 0}
                   className="object-cover object-center"
                 />

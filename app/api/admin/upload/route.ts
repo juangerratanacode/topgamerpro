@@ -42,7 +42,17 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabaseAdmin.storage
     .from(bucket)
-    .upload(path, await file.arrayBuffer(), { contentType: file.type, upsert: false });
+    .upload(path, await file.arrayBuffer(), {
+      contentType: file.type,
+      upsert: false,
+      // Sin esto, Supabase Storage sirve estos archivos con
+      // cache-control: no-cache — cada visita a la web vuelve a descargar
+      // la imagen entera desde Supabase en vez de usar la copia que ya
+      // tiene el navegador, multiplicando el egress sin necesidad. Como
+      // cada archivo vive en una ruta con UUID aleatorio que nunca se
+      // reescribe (upsert:false), es seguro cachearlo por un año.
+      cacheControl: "31536000",
+    });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

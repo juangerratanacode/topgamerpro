@@ -17,7 +17,7 @@ export default function PackageIconDisplay({
   if (variation.iconImageUrl) {
     return (
       <span className={`relative inline-block rounded ${cls}`}>
-        <Image src={variation.iconImageUrl} alt="" fill className="object-contain" />
+        <Image src={variation.iconImageUrl} alt="" fill sizes="40px" className="object-contain" />
       </span>
     );
   }
