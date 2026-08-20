@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import ProductDetailClient from "@/components/ProductDetailClient";
 import ProductReviews from "@/components/ProductReviews";
 import { supabase } from "@/lib/supabaseClient";
@@ -44,6 +45,33 @@ async function getProductBySlugServer(slug: string): Promise<Product | undefined
   }
 
   return mockProducts.find((p) => p.slug === slug);
+}
+
+// SEO por producto: sin esto, todas las páginas de producto heredaban el
+// title/description genérico de app/layout.tsx, y Google no tenía forma de
+// distinguir una página de otra en resultados de búsqueda.
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  const product = await getProductBySlugServer(params.slug);
+  if (!product) return {};
+
+  const title = `${product.name} — Recarga rápida | TopGamerPro`;
+  const description =
+    product.description?.slice(0, 160) ||
+    `Recarga ${product.name} de forma rápida y segura con Pago Móvil o PayPal. Entrega en minutos.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: product.imageUrl ? [{ url: product.imageUrl }] : undefined,
+    },
+  };
 }
 
 // Server Component: el producto llega ya resuelto en el HTML — nada de

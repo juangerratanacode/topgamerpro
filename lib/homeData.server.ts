@@ -62,3 +62,18 @@ export async function getHomeData() {
   const [banners, products] = await Promise.all([fetchBannersServer(), fetchProductsServer()]);
   return { banners, products };
 }
+
+export interface ProductSlugEntry {
+  slug: string;
+  updatedAt?: string;
+}
+
+// Versión liviana de fetchProductsServer para app/sitemap.ts — solo trae
+// slug + updated_at en vez de todas las variaciones de cada producto, que
+// ahí no hacen falta.
+export async function fetchProductSlugsServer(): Promise<ProductSlugEntry[]> {
+  if (!supabase) return mockProducts.map((p) => ({ slug: p.slug }));
+  const { data, error } = await supabase.from("products").select("slug, updated_at");
+  if (error || !data) return mockProducts.map((p) => ({ slug: p.slug }));
+  return data.map((row: any) => ({ slug: row.slug, updatedAt: row.updated_at ?? undefined }));
+}

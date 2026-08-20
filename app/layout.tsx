@@ -18,9 +18,25 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
+const TITLE = "TopGamerPro — Recargas de Videojuegos";
+const DESCRIPTION = "Recarga tus juegos favoritos en minutos. Pago Móvil y PayPal.";
+
 export const metadata: Metadata = {
-  title: "TopGamerPro — Recargas de Videojuegos",
-  description: "Recarga tus juegos favoritos en minutos. Pago Móvil y PayPal.",
+  // Sin esto, las URLs relativas de Open Graph (og:image, etc.) no se
+  // resuelven a una URL absoluta y algunos clientes (WhatsApp, Twitter/X)
+  // simplemente no muestran la imagen al compartir un link.
+  metadataBase: new URL("https://topgamerpro.com"),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "https://topgamerpro.com",
+    siteName: "TopGamerPro",
+    images: [{ url: "/hero/hero-visual.png", width: 1200, height: 630 }],
+    locale: "es_VE",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
