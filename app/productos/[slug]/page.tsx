@@ -93,7 +93,11 @@ export default async function ProductPage({ params }: { params: { slug: string }
           con degradado de marca encima — así cada producto "ambienta" su
           página sin competir con el contenido. */}
       {product.imageUrl && (
-        <div className="fixed inset-0 -z-10 overflow-hidden">
+        // will-change-transform: promueve el fondo a su propia capa de
+        // composición — es fixed y no debería repintarse en cada scroll,
+        // pero con blur-2xl + scale-110 conviene asegurarlo en vez de
+        // confiar en que el navegador lo decida solo.
+        <div className="fixed inset-0 -z-10 overflow-hidden will-change-transform">
           <Image
             src={product.imageUrl}
             alt=""

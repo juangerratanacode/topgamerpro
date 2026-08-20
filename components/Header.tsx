@@ -24,7 +24,12 @@ export default function Header() {
   const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0];
 
   return (
-    <header className="bg-brand-surface/95 backdrop-blur border-b border-brand-border sticky top-0 z-40">
+    // will-change-transform: sticky + backdrop-blur es una combinación
+    // clásica de jank en scroll — sin esto, el navegador tiene que volver a
+    // muestrear el blur del contenido que pasa por detrás en cada frame.
+    // Esto lo promueve a su propia capa de composición desde el principio
+    // en vez de decidirlo tarde, mid-scroll.
+    <header className="bg-brand-surface/95 backdrop-blur border-b border-brand-border sticky top-0 z-40 will-change-transform">
       {/* Fila móvil: hamburguesa a la izquierda, logo centrado, carrito a la
           derecha — igual a como se ve en la mayoría de tiendas en el celular. */}
       <div className="sm:hidden grid grid-cols-3 items-center px-4 py-1">

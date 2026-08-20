@@ -24,6 +24,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const router = useRouter();
 
   const activeFields = getVariationFields(product, selectedVariation.id);
+  const fieldsWithHelp = activeFields.filter((f) => f.helpText);
   const { average, count } = getAverageRating(product.slug);
 
   // En modo PayPal, el precio real es el que se cargó a mano en el admin
@@ -68,24 +69,47 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   }
 
   return (
-    <div className="grid sm:grid-cols-2 gap-8">
-      <motion.div
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.35 }}
-        className="aspect-[4/5] rounded-2xl relative overflow-hidden"
-      >
-        {product.imageUrl && (
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            sizes="(max-width: 640px) 100vw, 50vw"
-            className="object-cover"
-            priority
-          />
+    <div className="grid sm:grid-cols-2 gap-8 lg:items-start">
+      {/* Columna izquierda: en desktop queda "pegada" (sticky) mientras se
+          scrollea la derecha, en vez de dejar un hueco vacío debajo cuando
+          la imagen es más corta que el resto del contenido. En mobile no
+          cambia nada — sigue apilada normal. */}
+      <div className="lg:sticky lg:top-[100px] lg:self-start space-y-4">
+        <motion.div
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.35 }}
+          className="aspect-[4/5] rounded-2xl relative overflow-hidden"
+        >
+          {product.imageUrl && (
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 100vw, 50vw"
+              className="object-cover"
+              priority
+            />
+          )}
+        </motion.div>
+
+        {/* Mismo texto de ayuda que ya se muestra bajo cada campo — acá
+            solo se repite en desktop (hidden por defecto) para balancear
+            la altura de la columna izquierda; en mobile se sigue viendo
+            únicamente debajo de cada campo, como siempre. */}
+        {fieldsWithHelp.length > 0 && (
+          <div className="hidden lg:block bg-brand-surface border border-brand-border rounded-xl p-4">
+            <div className="font-semibold text-sm mb-2">¿Cómo encontrar tus datos?</div>
+            <ul className="space-y-2 text-xs text-brand-textMuted">
+              {fieldsWithHelp.map((f) => (
+                <li key={f.key}>
+                  <strong className="text-white">{f.label}:</strong> {f.helpText}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
-      </motion.div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, x: 12 }}
@@ -130,26 +154,27 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
         <div className="mb-6">
           <div className="font-semibold text-sm mb-2 text-brand-textMuted">Elige tu paquete</div>
-          <div className="grid grid-cols-3 gap-3">
-            {product.variations.map((v, i) => (
-              <motion.button
+          {/* Antes cada card era un motion.button con fade-in escalonado +
+              whileTap — con catálogos grandes eso es una instancia de
+              Framer Motion por paquete corriendo en el hilo de JS al
+              montar. Reemplazado por CSS puro (transition-colors +
+              active:scale) que hace lo mismo sin overhead de JS. */}
+          <div className="grid grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-2.5">
+            {product.variations.map((v) => (
+              <button
                 key={v.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: i * 0.04 }}
-                whileTap={{ scale: 0.96 }}
                 onClick={() => setSelectedVariation(v)}
                 className={clsx(
-                  "border-2 rounded-xl p-3 text-center transition-colors flex flex-col items-center gap-1",
+                  "border-2 rounded-xl p-3 lg:p-2.5 text-center transition-colors active:scale-[0.96] flex flex-col items-center gap-1",
                   selectedVariation.id === v.id
                     ? "border-brand-primary bg-brand-primary/10"
                     : "border-brand-border bg-brand-surface hover:border-brand-textMuted"
                 )}
               >
-                <PackageIconDisplay variation={v} className="w-9 h-9" />
+                <PackageIconDisplay variation={v} className="w-9 h-9 lg:w-7 lg:h-7" />
                 <div className="text-xs font-semibold">{v.label}</div>
                 <div className="text-brand-green font-bold text-sm">{formatVariationPrice(v)}</div>
-              </motion.button>
+              </button>
             ))}
           </div>
         </div>
@@ -221,7 +246,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                     />
                   )}
                   {field.helpText && (
-                    <p className="text-xs text-brand-textMuted/70 mt-1">{field.helpText}</p>
+                    <p className="text-xs text-brand-textMuted/70 mt-1 lg:hidden">{field.helpText}</p>
                   )}
                 </div>
               );
