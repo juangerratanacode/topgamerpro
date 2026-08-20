@@ -6,9 +6,10 @@
 // una tasa configurable desde el panel admin. Es solo visual — el cobro
 // real sigue definiéndose por el método de pago elegido en el checkout.
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import type { Currency } from "./types";
 import { getPaypalPrice } from "./pricing";
+import { adminFetch } from "./adminFetch";
 
 const STORAGE_KEY = "pitanga_currency_v1";
 
@@ -67,12 +68,27 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [display, setDisplayState] = useState<Currency>(DEFAULT_DISPLAY);
   const [rates, setRates] = useState<Record<Currency, number>>(DEFAULT_RATES);
   const [hydrated, setHydrated] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // La tasa de VES la carga primero de localStorage (pintado instantáneo,
+    // sin esperar red) y de inmediato se pisa con lo que diga el servidor —
+    // la tasa real es global (una sola para todos los visitantes), guardada
+    // en Supabase; localStorage acá es solo caché para que no haya un
+    // parpadeo con el valor por defecto mientras carga.
     const loaded = load();
     setDisplayState(loaded.display);
     setRates(loaded.rates);
     setHydrated(true);
+
+    fetch("/api/admin/payment-settings", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.exchangeRates) {
+          setRates((prev) => ({ ...prev, ...data.exchangeRates }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -83,7 +99,20 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   const setDisplay = useCallback((c: Currency) => setDisplayState(c), []);
   const setRate = useCallback((c: Currency, rate: number) => {
-    setRates((prev) => ({ ...prev, [c]: rate }));
+    setRates((prev) => {
+      const next = { ...prev, [c]: rate };
+      // Debounce: el admin escribe dígito por dígito, no hace falta pegarle
+      // al servidor en cada tecla — solo cuando se queda quieto un rato.
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        adminFetch("/api/admin/payment-settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exchangeRates: next }),
+        }).catch(() => {});
+      }, 600);
+      return next;
+    });
   }, []);
 
   const convert = useCallback(

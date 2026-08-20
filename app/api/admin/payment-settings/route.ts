@@ -28,7 +28,14 @@ export async function GET() {
     },
   };
 
-  return NextResponse.json({ settings });
+  // Antes la tasa VES vivía solo en localStorage del navegador de quien la
+  // configuraba — cada visitante veía un valor distinto (el default
+  // hardcodeado en el código) según si había pasado por el admin o no.
+  // Ahora es una fila más de esta misma tabla, así que un solo valor rige
+  // para todo el mundo.
+  const exchangeRates: Record<string, number> = data.exchange_rates ?? { VES: 130 };
+
+  return NextResponse.json({ settings, exchangeRates });
 }
 
 export async function PUT(req: NextRequest) {
@@ -36,18 +43,25 @@ export async function PUT(req: NextRequest) {
   if (!auth.ok) return NextResponse.json({ error: "No autorizado" }, { status: auth.status });
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase no configurado" }, { status: 500 });
 
-  const { settings } = (await req.json()) as { settings: PaymentSettings };
-  if (!settings) return NextResponse.json({ error: "Body inválido" }, { status: 400 });
+  const { settings, exchangeRates } = (await req.json()) as {
+    settings?: PaymentSettings;
+    exchangeRates?: Record<string, number>;
+  };
+  if (!settings && !exchangeRates) {
+    return NextResponse.json({ error: "Body inválido" }, { status: 400 });
+  }
 
-  const { error } = await supabaseAdmin
-    .from("payment_settings")
-    .update({
-      pago_movil: settings.pagoMovil,
-      paypal: settings.paypal,
-      binance: settings.binance,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", 1);
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (settings) {
+    patch.pago_movil = settings.pagoMovil;
+    patch.paypal = settings.paypal;
+    patch.binance = settings.binance;
+  }
+  if (exchangeRates) {
+    patch.exchange_rates = exchangeRates;
+  }
+
+  const { error } = await supabaseAdmin.from("payment_settings").update(patch).eq("id", 1);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

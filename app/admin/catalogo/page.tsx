@@ -92,7 +92,9 @@ export default function AdminPage() {
         <p className="text-xs text-brand-textMuted mb-3">
           Los precios se guardan en USD; esto solo define cómo se muestran al cliente cuando elige
           ver Bolívares en el selector de moneda. (PayPal no usa una tasa fija — se calcula
-          automáticamente con la comisión de cada paquete, ver más abajo "Precio PayPal").
+          automáticamente con la comisión de cada paquete, ver más abajo "Precio PayPal"). Esta tasa
+          es global — se guarda sola un segundo después de que dejás de escribir, sin necesidad de
+          tocar "Guardar cambios".
         </p>
         <div className="grid sm:grid-cols-2 gap-3 max-w-md">
           {(Object.keys(CURRENCY_META) as Currency[])
