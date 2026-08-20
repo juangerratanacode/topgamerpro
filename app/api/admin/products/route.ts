@@ -152,7 +152,27 @@ export async function PUT(req: NextRequest) {
         const { error: insError } = await supabaseAdmin
           .from("product_variations")
           .insert({ ...row, product_id: upserted.id });
-        if (insError) return NextResponse.json({ error: insError.message }, { status: 500 });
+        if (insError) {
+          // Choque contra el constraint único (product_id, label): significa
+          // que ya existe una fila con esta etiqueta para este producto —
+          // típicamente porque el navegador todavía tenía el id temporal de
+          // un paquete que en realidad ya se había guardado antes (el
+          // estado del cliente no se había refrescado con el id real). En
+          // vez de fallar el guardado entero, se actualiza esa fila
+          // existente en lugar de insertar una nueva.
+          if (insError.code === "23505") {
+            const { error: fallbackError } = await supabaseAdmin
+              .from("product_variations")
+              .update(row)
+              .eq("product_id", upserted.id)
+              .eq("label", v.label);
+            if (fallbackError) {
+              return NextResponse.json({ error: fallbackError.message }, { status: 500 });
+            }
+          } else {
+            return NextResponse.json({ error: insError.message }, { status: 500 });
+          }
+        }
       }
     }
 

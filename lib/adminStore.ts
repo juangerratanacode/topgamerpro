@@ -123,6 +123,19 @@ export function useAdminProducts() {
     setSaving(true);
     const errorMessage = await persistProductsToApi(products);
     setSaveError(errorMessage);
+
+    // Tras guardar, el servidor le asignó un UUID real a cada paquete
+    // nuevo — pero el estado local todavía tiene el id temporal
+    // (`v<timestamp>`) con el que se creó en el navegador. Sin recargar
+    // acá, un segundo guardado (ej. tras editar otro campo) seguía viendo
+    // ese paquete como "nuevo" y lo insertaba OTRA VEZ con la misma
+    // etiqueta, chocando contra el constraint único. Recargar desde la API
+    // sincroniza el estado con los ids reales de la base.
+    if (!errorMessage) {
+      const fresh = await loadProductsFromApi();
+      setProducts(fresh);
+    }
+
     setSaving(false);
     return !errorMessage;
   }, [products]);
