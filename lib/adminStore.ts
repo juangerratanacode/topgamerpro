@@ -114,6 +114,16 @@ export function useAdminProducts() {
     });
   }, []);
 
+  // Botón manual para forzar una relectura desde la BD sin recargar toda la
+  // página — red de seguridad contra el problema recurrente de esta app: una
+  // pestaña del admin abierta hace rato queda con datos viejos en memoria
+  // (ej. un paquete que otra persona guardó desde otra pestaña, o que el
+  // servidor guardó pero esta pestaña nunca se enteró).
+  const reload = useCallback(async () => {
+    const fresh = await loadProductsFromApi();
+    setProducts(fresh);
+  }, []);
+
   // Guardado EXPLÍCITO (botón "Guardar cambios"), no automático en cada
   // tecla — guardar en cada cambio causaba llamadas simultáneas al mismo
   // endpoint que se pisaban entre sí y duplicaban paquetes en la base.
@@ -302,6 +312,7 @@ export function useAdminProducts() {
     saving,
     saveError,
     save,
+    reload,
     updateProduct,
     updateVariation,
     addVariation,

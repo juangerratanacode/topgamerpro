@@ -20,6 +20,7 @@ export default function AdminPage() {
     saving,
     saveError,
     save,
+    reload,
     updateProduct,
     updateVariation,
     addVariation,
@@ -36,6 +37,7 @@ export default function AdminPage() {
   const { rates, setRate } = useCurrency();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reloading, setReloading] = useState(false);
 
   if (!hydrated) {
     return <div className="max-w-5xl mx-auto px-4 py-10 text-brand-textMuted">Cargando...</div>;
@@ -46,6 +48,17 @@ export default function AdminPage() {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-extrabold">Catálogo</h1>
         <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              setReloading(true);
+              await reload();
+              setReloading(false);
+            }}
+            disabled={reloading}
+            className="text-xs font-semibold text-brand-textMuted hover:text-white border border-brand-border rounded-full px-3 py-1.5 disabled:opacity-50"
+          >
+            {reloading ? "Recargando..." : "↻ Recargar catálogo"}
+          </button>
           <button
             onClick={resetToDefaults}
             className="text-xs font-semibold text-brand-textMuted hover:text-white border border-brand-border rounded-full px-3 py-1.5"
