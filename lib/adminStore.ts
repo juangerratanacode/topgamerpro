@@ -330,10 +330,6 @@ export function useAdminProducts() {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const resetToDefaults = useCallback(() => {
-    setProducts(defaultProducts);
-  }, []);
-
   return {
     products,
     hydrated,
@@ -351,7 +347,6 @@ export function useAdminProducts() {
     removeField,
     addProduct,
     deleteProduct,
-    resetToDefaults,
     moveProductUp,
     moveProductDown,
   };

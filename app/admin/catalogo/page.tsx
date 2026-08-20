@@ -31,7 +31,6 @@ export default function AdminPage() {
     removeField,
     addProduct,
     deleteProduct,
-    resetToDefaults,
     moveProductUp,
     moveProductDown,
   } = useAdminProducts();
@@ -59,12 +58,6 @@ export default function AdminPage() {
             className="text-xs font-semibold text-brand-textMuted hover:text-white border border-brand-border rounded-full px-3 py-1.5 disabled:opacity-50"
           >
             {reloading ? "Recargando..." : "↻ Recargar catálogo"}
-          </button>
-          <button
-            onClick={resetToDefaults}
-            className="text-xs font-semibold text-brand-textMuted hover:text-white border border-brand-border rounded-full px-3 py-1.5"
-          >
-            Restaurar catálogo original
           </button>
           <button
             onClick={() => {
