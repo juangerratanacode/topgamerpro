@@ -6,7 +6,7 @@ import { useAccountOrders } from "@/lib/useAccountOrders";
 
 export default function MiCuentaEscritorioPage() {
   const { user } = useAuth();
-  const { orders, points, loading } = useAccountOrders();
+  const { orders, points, pointsRedeemedTotal, loading } = useAccountOrders();
 
   const fullName = (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ?? "";
   const memberSince = user
@@ -48,10 +48,20 @@ export default function MiCuentaEscritorioPage() {
 
       <div className="bg-gradient-to-r from-brand-primary/15 to-brand-accent/15 border border-brand-primary/30 rounded-2xl p-5 flex items-center justify-between gap-4">
         <p className="text-sm text-brand-textMuted">
-          Ganas <span className="text-brand-primary font-bold">10 puntos</span> por cada $1 en
-          pedidos confirmados. Por ahora los puntos se acumulan — pronto podrás canjearlos.
+          Ganas <span className="text-brand-primary font-bold">20 puntos</span> por cada $1 en
+          pedidos confirmados. Cada <span className="text-brand-primary font-bold">1,000 puntos</span>{" "}
+          equivalen a <span className="text-brand-primary font-bold">$1</span> de descuento —
+          podés usarlos en el checkout de tu próximo pedido.
         </p>
       </div>
+
+      {!loading && pointsRedeemedTotal > 0 && (
+        <p className="text-xs text-brand-textMuted">
+          Ya canjeaste{" "}
+          <span className="text-white font-semibold">{pointsRedeemedTotal.toLocaleString("es-VE")}</span>{" "}
+          puntos en total (${(pointsRedeemedTotal / 1000).toFixed(2)} en descuentos).
+        </p>
+      )}
     </div>
   );
 }

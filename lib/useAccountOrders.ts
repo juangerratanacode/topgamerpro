@@ -28,6 +28,7 @@ export function useAccountOrders() {
   const { session } = useAuth();
   const [orders, setOrders] = useState<AccountOrder[] | null>(null);
   const [points, setPoints] = useState(0);
+  const [pointsRedeemedTotal, setPointsRedeemedTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,9 +41,10 @@ export function useAccountOrders() {
       .then((data) => {
         setOrders(data.orders ?? []);
         setPoints(data.points ?? 0);
+        setPointsRedeemedTotal(data.pointsRedeemedTotal ?? 0);
       })
       .finally(() => setLoading(false));
   }, [session]);
 
-  return { orders, points, loading };
+  return { orders, points, pointsRedeemedTotal, loading };
 }

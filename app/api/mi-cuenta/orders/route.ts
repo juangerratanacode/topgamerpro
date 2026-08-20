@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getNetPointsBalance } from "@/lib/loyalty";
 
 export const dynamic = "force-dynamic";
-
-// Puntos de fidelidad: 10 puntos por cada $1 gastado, y solo se cuentan
-// pedidos ya confirmados (no pendientes ni rechazados) — evita que alguien
-// vea puntos por un pedido que nunca se pagó. Por ahora solo se acumulan,
-// no hay canje todavía.
-const POINTS_PER_USD = 10;
 
 // Historial de pedidos + puntos del cliente que tiene la sesión iniciada.
 // A diferencia del GET de /api/orders (que es para el admin y trae todo),
@@ -48,9 +43,11 @@ export async function GET(req: NextRequest) {
     status: o.status,
   }));
 
-  const points = orders
-    .filter((o) => o.status === "confirmado")
-    .reduce((sum, o) => sum + Math.round(o.totalUsd * POINTS_PER_USD), 0);
+  const balance = await getNetPointsBalance(supabaseAdmin, userData.user.id);
 
-  return NextResponse.json({ orders, points });
+  return NextResponse.json({
+    orders,
+    points: balance.net,
+    pointsRedeemedTotal: balance.redeemed,
+  });
 }

@@ -17,7 +17,8 @@ export function buildWhatsAppMessage(
   payment: OrderPaymentDetails,
   items: CartItem[],
   orderId: string,
-  totals: { formatPrice: (usd: number) => string; formattedTotal: string }
+  totals: { formatPrice: (usd: number) => string; formattedTotal: string },
+  redemption?: { points: number; discountLabel: string }
 ): string {
   const lines: string[] = [];
   lines.push("¡Hola! Quiero realizar un pedido:");
@@ -41,6 +42,9 @@ export function buildWhatsAppMessage(
     lines.push("");
   }
 
+  if (redemption && redemption.points > 0) {
+    lines.push(`Puntos usados: ${redemption.points.toLocaleString("es-VE")} (-${redemption.discountLabel})`);
+  }
   lines.push(`Total: ${totals.formattedTotal}`);
 
   return lines.join("\n");

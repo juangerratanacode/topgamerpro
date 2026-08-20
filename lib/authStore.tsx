@@ -14,7 +14,12 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (
+    name: string,
+    email: string,
+    password: string,
+    turnstileToken: string
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateProfile: (fullName: string, phone: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
@@ -47,24 +52,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
-  const signUp = useCallback(async (name: string, email: string, password: string) => {
-    if (!supabase) return { error: "Supabase no configurado" };
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-        // Sin esto, el link del correo de confirmación usa el "Site URL"
-        // configurado en el proyecto de Supabase — que quedó en
-        // localhost:3000 desde que se armó en desarrollo. Esto fuerza la
-        // URL real sin importar esa configuración (igual hay que agregar
-        // el dominio de producción a la lista de Redirect URLs permitidas
-        // en Supabase, o el link va a fallar con "requested path is invalid").
-        emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/mi-cuenta` : undefined,
-      },
-    });
-    return { error: error?.message ?? null };
-  }, []);
+  // El registro pasa por nuestra propia API (/api/auth/register) en vez de
+  // llamar a supabase.auth.signUp() directo desde el navegador — así el
+  // servidor puede verificar el token de Turnstile ANTES de crear la
+  // cuenta, algo que no se puede hacer si el signUp se dispara del lado
+  // del cliente. El endpoint arma el mismo emailRedirectTo que antes.
+  const signUp = useCallback(
+    async (name: string, email: string, password: string, turnstileToken: string) => {
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, turnstileToken }),
+        });
+        const data = await res.json();
+        if (!res.ok) return { error: data.error ?? "No se pudo crear la cuenta." };
+        return { error: null };
+      } catch {
+        return { error: "No se pudo conectar con el servidor." };
+      }
+    },
+    []
+  );
 
   const signOut = useCallback(async () => {
     if (!supabase) return;

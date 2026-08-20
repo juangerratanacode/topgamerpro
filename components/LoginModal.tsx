@@ -6,12 +6,15 @@
 // "containing block" para elementos position:fixed, lo que rompía el
 // centrado del modal (quedaba pegado dentro del header).
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import clsx from "clsx";
 import { useAuth } from "@/lib/authStore";
 import { supabase } from "@/lib/supabaseClient";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export default function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { signIn, signUp } = useAuth();
@@ -22,6 +25,8 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   if (typeof document === "undefined") return null;
 
@@ -31,6 +36,8 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
     setPassword("");
     setError(null);
     setInfo(null);
+    setTurnstileToken(null);
+    turnstileRef.current?.reset();
   }
 
   function handleClose() {
@@ -44,6 +51,10 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
 
     if (!email.trim() || !password.trim() || (tab === "register" && !name.trim())) {
       setError("Completa todos los campos.");
+      return;
+    }
+    if (tab === "register" && TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Completa la verificación antes de continuar.");
       return;
     }
 
@@ -61,13 +72,17 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
         }
         handleClose();
       } else {
-        const { error } = await signUp(name.trim(), email.trim(), password);
+        const { error } = await signUp(name.trim(), email.trim(), password, turnstileToken ?? "");
         if (error) {
           setError(
             error.toLowerCase().includes("already registered")
               ? "Ya existe una cuenta con ese correo."
               : error
           );
+          // El token de Turnstile es de un solo uso — si el registro falló
+          // (por el motivo que sea), hay que pedir uno nuevo para reintentar.
+          setTurnstileToken(null);
+          turnstileRef.current?.reset();
           return;
         }
         setInfo("¡Cuenta creada! Revisa tu correo para confirmarla antes de iniciar sesión.");
@@ -120,6 +135,7 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
                   setTab("login");
                   setError(null);
                   setInfo(null);
+                  setTurnstileToken(null);
                 }}
                 className={clsx(
                   "flex-1 py-3 text-sm font-semibold transition-colors",
@@ -168,6 +184,19 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
                 placeholder="Contraseña"
               />
 
+              {tab === "register" && TURNSTILE_SITE_KEY && (
+                <div className="flex justify-center">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onSuccess={setTurnstileToken}
+                    onExpire={() => setTurnstileToken(null)}
+                    onError={() => setTurnstileToken(null)}
+                    options={{ theme: "dark", size: "flexible" }}
+                  />
+                </div>
+              )}
+
               {error && <p className="text-xs text-red-400">{error}</p>}
               {info && <p className="text-xs text-brand-green">{info}</p>}
 
@@ -183,7 +212,7 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
 
               <button
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || (tab === "register" && !!TURNSTILE_SITE_KEY && !turnstileToken)}
                 className="w-full bg-brand-primary hover:bg-brand-primaryDark disabled:opacity-60 text-brand-bg font-bold py-3 rounded-full transition-colors"
               >
                 {submitting ? "Un momento..." : tab === "login" ? "Entrar" : "Crear cuenta"}

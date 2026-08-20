@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { sendOrderStatusEmail } from "@/lib/orderEmail";
+import { getNetPointsBalance, maxRedeemablePoints, pointsToUsd, POINTS_REDEMPTION_STEP } from "@/lib/loyalty";
+import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +15,8 @@ interface CreateOrderBody {
   payment: { method: PaymentMethodId; reference: string; receiptDataUrl?: string | null };
   totalUsd: number;
   totalConverted?: number;
+  pointsRedeemed?: number;
+  turnstileToken?: string;
 }
 
 // Crea un pedido nuevo: sube el comprobante (si vino) a Storage y guarda
@@ -36,6 +40,55 @@ export async function POST(req: NextRequest) {
     const { data } = await supabaseAdmin.auth.getUser(token);
     userId = data.user?.id ?? null;
   }
+
+  // Anti-abuso: a un cliente con sesión no se le vuelve a pedir Turnstile
+  // (ya lo resolvió una vez al crear la cuenta) — solo a invitados, que son
+  // los que podrían spamear /api/orders sin fricción alguna.
+  if (!userId && process.env.TURNSTILE_SECRET_KEY) {
+    const remoteIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const verification = await verifyTurnstileToken(body.turnstileToken, remoteIp);
+    if (!verification.success) {
+      return NextResponse.json({ error: verification.error }, { status: 400 });
+    }
+  }
+
+  // Canje de puntos: nunca se confía en el descuento que calculó el
+  // navegador. `totalUsd`/`totalConverted` que llegan en el body son el
+  // SUBTOTAL sin descontar — acá se recalcula el balance real del usuario
+  // (mismo cálculo que /api/mi-cuenta/orders) y se valida que el canje
+  // pedido sea legítimo antes de restar nada. Sin sesión, o sin puntos
+  // pedidos, no hay descuento.
+  const requestedPoints = body.pointsRedeemed ?? 0;
+  let pointsRedeemed = 0;
+  if (requestedPoints > 0) {
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Necesitas iniciar sesión para usar puntos." },
+        { status: 401 }
+      );
+    }
+    if (requestedPoints % POINTS_REDEMPTION_STEP !== 0) {
+      return NextResponse.json(
+        { error: `Los puntos se canjean en múltiplos de ${POINTS_REDEMPTION_STEP}.` },
+        { status: 400 }
+      );
+    }
+    const balance = await getNetPointsBalance(supabaseAdmin, userId);
+    const maxAllowed = maxRedeemablePoints(totalUsd, balance.net);
+    if (requestedPoints > maxAllowed) {
+      return NextResponse.json(
+        { error: "No tienes suficientes puntos disponibles para ese descuento." },
+        { status: 400 }
+      );
+    }
+    pointsRedeemed = requestedPoints;
+  }
+
+  const discountUsd = pointsToUsd(pointsRedeemed);
+  const finalTotalUsd = Math.max(0, totalUsd - discountUsd);
+  const discountRatio = totalUsd > 0 ? finalTotalUsd / totalUsd : 1;
+  const finalTotalConverted =
+    totalConverted != null ? totalConverted * discountRatio : undefined;
 
   let receiptUrl: string | null = null;
   if (payment.receiptDataUrl) {
@@ -68,8 +121,8 @@ export async function POST(req: NextRequest) {
       payment_reference: payment.reference,
       receipt_url: receiptUrl,
       status: "pendiente",
-      total_usd: totalUsd,
-      total_converted: totalConverted ?? null,
+      total_usd: finalTotalUsd,
+      total_converted: finalTotalConverted ?? null,
     })
     .select()
     .single();
@@ -99,6 +152,23 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // El canje se registra recién ACÁ, con la orden ya creada — si algo
+  // falla antes de este punto, no queremos puntos gastados sin un pedido
+  // real detrás. Un fallo acá tampoco debe romper la respuesta del
+  // checkout: en el peor caso el cliente obtuvo el descuento sin que
+  // quede el registro, algo a revisar manualmente, pero no bloquear la venta.
+  if (userId && pointsRedeemed > 0) {
+    const { error: redemptionError } = await supabaseAdmin.from("loyalty_redemptions").insert({
+      user_id: userId,
+      points_used: pointsRedeemed,
+      usd_value: discountUsd,
+      order_id: order.id,
+    });
+    if (redemptionError) {
+      console.error("Error registrando el canje de puntos:", redemptionError);
+    }
+  }
+
   // El pedido ya quedó guardado — el correo es un extra sobre la
   // confirmación por WhatsApp, así que un fallo acá no debe tumbar la
   // respuesta ni hacer que el cliente vea un error de checkout.
@@ -107,9 +177,9 @@ export async function POST(req: NextRequest) {
     items,
     method: payment.method,
     orderId: order.id,
-    totalUsd,
+    totalUsd: finalTotalUsd,
     currency,
-    totalConverted: totalConverted ?? totalUsd,
+    totalConverted: finalTotalConverted ?? finalTotalUsd,
     createdAt: new Date(order.created_at ?? Date.now()),
   });
 
@@ -182,6 +252,21 @@ export async function PATCH(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Si el pedido se rechaza, cualquier canje de puntos que se le haya
+  // aplicado se revierte automáticamente — el cliente nunca debería perder
+  // puntos por un pago que no se confirmó. Como el balance se calcula
+  // siempre como (ganados - canjeados), borrar la fila alcanza para
+  // devolvérselos, sin tocar ninguna columna de "balance" directa.
+  if (order && status === "rechazado") {
+    const { error: refundError } = await supabaseAdmin
+      .from("loyalty_redemptions")
+      .delete()
+      .eq("order_id", order.id);
+    if (refundError) {
+      console.error("Error devolviendo puntos de un pedido rechazado:", refundError);
+    }
+  }
 
   if (order && (status === "confirmado" || status === "rechazado")) {
     const customer: CustomerInfo = {

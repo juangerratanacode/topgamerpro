@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useCart } from "@/lib/cartStore";
 import { usePaymentSettings } from "@/lib/paymentSettingsStore";
 import { getCartTotalForMethod, getCartItemIcon } from "@/lib/pricing";
@@ -11,6 +12,8 @@ import { buildWhatsAppMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 import { fileToDataUrl } from "@/lib/ordersStore";
 import { useCurrency, CURRENCY_META as CURRENCY_DISPLAY_META } from "@/lib/currencyStore";
 import { useAuth } from "@/lib/authStore";
+import { useAccountOrders } from "@/lib/useAccountOrders";
+import { maxRedeemablePoints, pointsToUsd, POINTS_REDEMPTION_STEP } from "@/lib/loyalty";
 import PhoneInput, { isPhoneValid, formatPhoneE164, type PhoneValue } from "@/components/PhoneInput";
 import PackageIconDisplay from "@/components/PackageIconDisplay";
 import type { Currency, PaymentMethodId } from "@/lib/types";
@@ -33,13 +36,25 @@ function methodsForDisplayCurrency(display: Currency): PaymentMethodId[] {
   return ["binance", "paypal"];
 }
 
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
 export default function CheckoutForm() {
   const { items, clearCart } = useCart();
   const { products } = useStorefrontProducts();
   const { rates, display } = useCurrency();
   const { settings: paymentSettings, hydrated: paymentsHydrated } = usePaymentSettings();
   const { user, session } = useAuth();
+  const { points: pointsAvailable } = useAccountOrders();
   const router = useRouter();
+
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+
+  // Solo se le pide Turnstile a invitados (sin sesión) — un cliente
+  // logueado ya pasó la verificación una vez al crear la cuenta.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+  const needsTurnstile = !user && !!TURNSTILE_SITE_KEY;
 
   // Los métodos disponibles dependen de la moneda que el cliente eligió en
   // el switcher del header: en Bs. solo Pago Móvil, en USD/COP Binance o
@@ -79,20 +94,34 @@ export default function CheckoutForm() {
   }, [user]);
 
   const currency = METHOD_META[method].currency;
-  const total = getCartTotalForMethod(items, method);
+  const subtotalUsd = getCartTotalForMethod(items, method);
+
+  // Tope de puntos canjeables: no más de lo que el cliente tiene, no más
+  // del 50% del pedido, y siempre en múltiplos de POINTS_REDEMPTION_STEP —
+  // recalculado cada vez que cambia el carrito/método (el subtotal en USD
+  // puede variar) o el balance de puntos.
+  const maxPoints = user ? maxRedeemablePoints(subtotalUsd, pointsAvailable) : 0;
+  useEffect(() => {
+    if (!usePoints) {
+      setPointsToRedeem(0);
+      return;
+    }
+    setPointsToRedeem((prev) => Math.min(prev > 0 ? prev : maxPoints, maxPoints));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usePoints, maxPoints]);
+
+  const discountUsd = pointsToUsd(pointsToRedeem);
+  const total = Math.max(0, subtotalUsd - discountUsd);
   const convertedTotal = total * (rates[currency] ?? 1);
+  const convertedSubtotal = subtotalUsd * (rates[currency] ?? 1);
   const totalDecimals = currency === "USD" ? 2 : 0;
-  const formattedTotal = `${CURRENCY_DISPLAY_META[currency].symbol}${convertedTotal.toLocaleString(
-    "es-VE",
-    { minimumFractionDigits: totalDecimals, maximumFractionDigits: totalDecimals }
-  )}`;
-  const formatPriceInCurrency = (usd: number) => {
-    const converted = usd * (rates[currency] ?? 1);
-    return `${CURRENCY_DISPLAY_META[currency].symbol}${converted.toLocaleString("es-VE", {
+  const formatAmount = (usd: number) =>
+    `${CURRENCY_DISPLAY_META[currency].symbol}${(usd * (rates[currency] ?? 1)).toLocaleString("es-VE", {
       minimumFractionDigits: totalDecimals,
       maximumFractionDigits: totalDecimals,
     })}`;
-  };
+  const formattedTotal = formatAmount(total);
+  const formatPriceInCurrency = formatAmount;
 
   const paypalUrl = `https://paypal.me/${paymentSettings.paypal.paypalMeUser}/${total.toFixed(2)}USD`;
 
@@ -113,7 +142,8 @@ export default function CheckoutForm() {
     step1Valid &&
     reference.trim().length > 0 &&
     !validatePaymentReference(method, reference) &&
-    (!receiptRequired || receiptFile !== null);
+    (!receiptRequired || receiptFile !== null) &&
+    (!needsTurnstile || !!turnstileToken);
 
   async function handleSubmit() {
     const refError = validatePaymentReference(method, reference);
@@ -123,6 +153,10 @@ export default function CheckoutForm() {
     }
     if (receiptRequired && !receiptFile) {
       alert("Debes adjuntar el comprobante de pago.");
+      return;
+    }
+    if (needsTurnstile && !turnstileToken) {
+      alert("Completa la verificación antes de confirmar el pedido.");
       return;
     }
 
@@ -150,11 +184,27 @@ export default function CheckoutForm() {
           items,
           currency,
           payment: { method, reference, receiptDataUrl },
-          totalUsd: total,
-          totalConverted: convertedTotal,
+          // Se manda el SUBTOTAL sin descuento — el servidor es quien resta
+          // los puntos canjeados después de validar que el cliente
+          // realmente los tiene disponibles, nunca se confía en un total
+          // ya descontado que venga del navegador.
+          totalUsd: subtotalUsd,
+          totalConverted: convertedSubtotal,
+          pointsRedeemed: usePoints ? pointsToRedeem : 0,
+          turnstileToken: needsTurnstile ? turnstileToken : undefined,
         }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        // Cerramos la pestaña en blanco que abrimos para WhatsApp — nunca
+        // va a tener a dónde ir. El token de Turnstile es de un solo uso,
+        // así que también hay que pedir uno nuevo antes de reintentar.
+        waWindow?.close();
+        setTurnstileToken(null);
+        turnstileRef.current?.reset();
+        alert(data.error ?? "No se pudo crear el pedido. Intenta de nuevo.");
+        return;
+      }
       const orderId = data.orderId ?? `TEMP-${Date.now()}`;
 
       const message = buildWhatsAppMessage(
@@ -170,7 +220,10 @@ export default function CheckoutForm() {
         },
         items,
         orderId,
-        { formatPrice: formatPriceInCurrency, formattedTotal }
+        { formatPrice: formatPriceInCurrency, formattedTotal },
+        usePoints && pointsToRedeem > 0
+          ? { points: pointsToRedeem, discountLabel: formatAmount(discountUsd) }
+          : undefined
       );
       const waUrl = buildWhatsAppUrl(message);
 
@@ -287,6 +340,58 @@ export default function CheckoutForm() {
               ))}
             </div>
 
+            {user && maxPoints >= POINTS_REDEMPTION_STEP && (
+              <div className="bg-brand-surfaceLight border border-brand-border rounded-xl p-4">
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <span className="text-sm font-semibold">
+                    Usar mis puntos{" "}
+                    <span className="text-brand-textMuted font-normal">
+                      ({pointsAvailable.toLocaleString("es-VE")} disponibles)
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={usePoints}
+                    onChange={(e) => setUsePoints(e.target.checked)}
+                    className="w-5 h-5 accent-brand-primary shrink-0"
+                  />
+                </label>
+
+                {usePoints && (
+                  <div className="mt-3 space-y-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={maxPoints}
+                      step={POINTS_REDEMPTION_STEP}
+                      value={pointsToRedeem}
+                      onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                      className="w-full accent-brand-primary"
+                    />
+                    <div className="flex items-center justify-between text-xs text-brand-textMuted">
+                      <span>
+                        {pointsToRedeem.toLocaleString("es-VE")} puntos ={" "}
+                        <span className="text-brand-primary font-semibold">
+                          -{formatAmount(discountUsd)}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPointsToRedeem(maxPoints)}
+                        className="underline hover:text-white"
+                      >
+                        Usar el máximo
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-brand-textMuted">
+                      El descuento no puede superar el 50% del pedido. Se canjea en múltiplos de{" "}
+                      {POINTS_REDEMPTION_STEP.toLocaleString("es-VE")}.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {method === "pago_movil_manual" && (
               <PaymentBox title="Datos para el Pago Móvil">
                 Banco: {paymentSettings.pagoMovil.banco}
@@ -374,6 +479,19 @@ export default function CheckoutForm() {
               </p>
             </div>
 
+            {needsTurnstile && (
+              <div className="flex justify-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY!}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => setTurnstileToken(null)}
+                  options={{ theme: "dark", size: "flexible" }}
+                />
+              </div>
+            )}
+
             <button
               onClick={handleSubmit}
               disabled={!canSubmit || submitting}
@@ -413,7 +531,19 @@ export default function CheckoutForm() {
             </div>
           ))}
         </div>
-        <div className="border-t border-brand-border pt-4 flex justify-between items-center">
+        {usePoints && pointsToRedeem > 0 && (
+          <div className="border-t border-brand-border pt-3 space-y-1.5 text-sm">
+            <div className="flex justify-between text-brand-textMuted">
+              <span>Subtotal</span>
+              <span>{formatAmount(subtotalUsd)}</span>
+            </div>
+            <div className="flex justify-between text-brand-primary font-semibold">
+              <span>Descuento por puntos</span>
+              <span>-{formatAmount(discountUsd)}</span>
+            </div>
+          </div>
+        )}
+        <div className={clsx(!usePoints || pointsToRedeem === 0 ? "border-t border-brand-border pt-4" : "pt-1", "flex justify-between items-center")}>
           <span className="font-semibold text-brand-textMuted">Total</span>
           <div className="text-right">
             <span className="font-bold text-xl text-brand-primary">{formattedTotal}</span>
