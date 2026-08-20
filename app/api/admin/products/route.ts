@@ -75,6 +75,8 @@ export async function PUT(req: NextRequest) {
     await supabaseAdmin.from("products").delete().in("id", toDelete);
   }
 
+  const skippedDeletions: { product: string; id: string; reason: string }[] = [];
+
   for (const [index, p] of products.entries()) {
     const { data: upserted, error } = await supabaseAdmin
       .from("products")
@@ -100,15 +102,37 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: error?.message ?? "Error guardando producto" }, { status: 500 });
     }
 
-    await supabaseAdmin.from("product_variations").delete().eq("product_id", upserted.id);
-
     const variationsByLabel = new Map<string, (typeof p.variations)[number]>();
     for (const v of p.variations) variationsByLabel.set(v.label.trim().toLowerCase(), v);
     const dedupedVariations = Array.from(variationsByLabel.values());
 
-    if (dedupedVariations.length > 0) {
-      const variationRows = dedupedVariations.map((v, vIndex) => ({
-        product_id: upserted.id,
+    // Antes esto era "borrar todo lo que tenga este producto, después
+    // insertar todo de nuevo". El problema: si algún paquete ya tiene un
+    // pedido real asociado (order_items.variation_id lo referencia), el
+    // DELETE completo fallaba por la foreign key — y como el resultado de
+    // ese delete nunca se chequeaba, el código seguía igual e insertaba el
+    // set nuevo ENCIMA del viejo (que nunca se había borrado). Eso era la
+    // causa real de los paquetes duplicados, no un bug de lectura.
+    //
+    // Ahora se sincroniza por id: real UUID existente = UPDATE, id
+    // temporal del cliente (o sin id) = INSERT nuevo, y solo se borran los
+    // ids que existían antes y ya no vienen en el array — si ese borrado
+    // puntual falla por tener pedidos reales, se omite ese paquete en vez
+    // de tumbar el guardado entero, y se avisa en la respuesta.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const { data: existingVariations } = await supabaseAdmin
+      .from("product_variations")
+      .select("id")
+      .eq("product_id", upserted.id);
+    const existingIds = new Set((existingVariations ?? []).map((v) => v.id as string));
+
+    const toUpdate = dedupedVariations.filter((v) => UUID_RE.test(v.id) && existingIds.has(v.id));
+    const toInsert = dedupedVariations.filter((v) => !UUID_RE.test(v.id) || !existingIds.has(v.id));
+    const keptIds = new Set(toUpdate.map((v) => v.id));
+    const idsToRemove = [...existingIds].filter((id) => !keptIds.has(id));
+
+    for (const [vIndex, v] of dedupedVariations.entries()) {
+      const row = {
         label: v.label,
         price_usd: v.priceUsd,
         price_usd_paypal: v.priceUsdPaypal ?? null,
@@ -117,11 +141,38 @@ export async function PUT(req: NextRequest) {
         reloadly_product_id: v.reloadlyProductId ?? null,
         fields_override: v.fieldsOverride ?? null,
         sort_order: vIndex,
-      }));
-      const { error: varError } = await supabaseAdmin.from("product_variations").insert(variationRows);
-      if (varError) return NextResponse.json({ error: varError.message }, { status: 500 });
+      };
+      if (toUpdate.includes(v)) {
+        const { error: updError } = await supabaseAdmin
+          .from("product_variations")
+          .update(row)
+          .eq("id", v.id);
+        if (updError) return NextResponse.json({ error: updError.message }, { status: 500 });
+      } else if (toInsert.includes(v)) {
+        const { error: insError } = await supabaseAdmin
+          .from("product_variations")
+          .insert({ ...row, product_id: upserted.id });
+        if (insError) return NextResponse.json({ error: insError.message }, { status: 500 });
+      }
+    }
+
+    for (const id of idsToRemove) {
+      const { error: delError } = await supabaseAdmin.from("product_variations").delete().eq("id", id);
+      if (delError) {
+        // No se pudo borrar (típicamente: tiene pedidos reales asociados).
+        // Se deja el paquete en la base en vez de fallar todo el guardado
+        // — va a seguir apareciendo en la lista hasta que se le quiten
+        // esos pedidos, pero eso es preferible a perder el historial.
+        skippedDeletions.push({ product: p.name, id, reason: delError.message });
+      }
     }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    ...(skippedDeletions.length > 0 && {
+      warning: `No se pudieron eliminar ${skippedDeletions.length} paquete(s) porque tienen pedidos asociados.`,
+      skippedDeletions,
+    }),
+  });
 }

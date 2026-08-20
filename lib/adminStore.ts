@@ -11,6 +11,26 @@ import type { Product, ProductVariation, GameFieldDef } from "./types";
 import { supabase } from "./supabaseClient";
 import { adminFetch } from "./adminFetch";
 
+// Defensa en el cliente contra duplicados: aunque la API ya devuelva datos
+// limpios, si por lo que sea llegan paquetes repetidos (mismo id, o mismo
+// label dentro del mismo producto) no queremos que el formulario del admin
+// los cargue en el estado y los vuelva a guardar tal cual. Se queda con la
+// primera aparición de cada uno.
+function dedupeProducts(products: Product[]): Product[] {
+  return products.map((p) => {
+    const seenIds = new Set<string>();
+    const seenLabels = new Set<string>();
+    const variations = p.variations.filter((v) => {
+      const labelKey = v.label.trim().toLowerCase();
+      if (seenIds.has(v.id) || seenLabels.has(labelKey)) return false;
+      seenIds.add(v.id);
+      seenLabels.add(labelKey);
+      return true;
+    });
+    return { ...p, variations };
+  });
+}
+
 // Convierte las filas de Supabase (products + product_variations) al mismo
 // shape que ya usaba el resto del código con mockProducts.ts, para no tener
 // que tocar los componentes que consumen useStorefrontProducts().
@@ -28,28 +48,30 @@ export async function fetchProductsFromSupabase(): Promise<Product[] | null> {
     return null;
   }
 
-  return rows.map((row: any) => ({
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    description: row.description ?? undefined,
-    imageUrl: row.image_url ?? undefined,
-    category: row.category,
-    genre: row.genre,
-    requiresActivisionLink: row.requires_activision_link ?? undefined,
-    requiresKonamiId: row.requires_konami_id ?? undefined,
-    fields: row.fields ?? [],
-    variations: (row.product_variations ?? []).map((v: any) => ({
-      id: v.id,
-      label: v.label,
-      priceUsd: Number(v.price_usd),
-      priceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined,
-      icon: v.icon,
-      iconImageUrl: v.icon_image_url ?? undefined,
-      reloadlyProductId: v.reloadly_product_id ?? undefined,
-      fieldsOverride: v.fields_override ?? undefined,
-    })),
-  }));
+  return dedupeProducts(
+    rows.map((row: any) => ({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      description: row.description ?? undefined,
+      imageUrl: row.image_url ?? undefined,
+      category: row.category,
+      genre: row.genre,
+      requiresActivisionLink: row.requires_activision_link ?? undefined,
+      requiresKonamiId: row.requires_konami_id ?? undefined,
+      fields: row.fields ?? [],
+      variations: (row.product_variations ?? []).map((v: any) => ({
+        id: v.id,
+        label: v.label,
+        priceUsd: Number(v.price_usd),
+        priceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined,
+        icon: v.icon,
+        iconImageUrl: v.icon_image_url ?? undefined,
+        reloadlyProductId: v.reloadly_product_id ?? undefined,
+        fieldsOverride: v.fields_override ?? undefined,
+      })),
+    }))
+  );
 }
 
 async function loadProductsFromApi(): Promise<Product[]> {
@@ -57,7 +79,9 @@ async function loadProductsFromApi(): Promise<Product[]> {
     const res = await adminFetch("/api/admin/products", { cache: "no-store" });
     if (!res.ok) return defaultProducts;
     const data = await res.json();
-    return Array.isArray(data.products) && data.products.length > 0 ? data.products : defaultProducts;
+    return Array.isArray(data.products) && data.products.length > 0
+      ? dedupeProducts(data.products)
+      : defaultProducts;
   } catch {
     return defaultProducts;
   }
