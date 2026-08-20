@@ -4,6 +4,7 @@ import ProductDetailClient from "@/components/ProductDetailClient";
 import ProductReviews from "@/components/ProductReviews";
 import { supabase } from "@/lib/supabaseClient";
 import { mockProducts } from "@/lib/mockProducts";
+import { dedupeVariations } from "@/lib/productUtils";
 import type { Product } from "@/lib/types";
 
 export const revalidate = 0;
@@ -28,18 +29,20 @@ async function getProductBySlugServer(slug: string): Promise<Product | undefined
         requiresActivisionLink: row.requires_activision_link ?? undefined,
         requiresKonamiId: row.requires_konami_id ?? undefined,
         fields: row.fields ?? [],
-        variations: (row.product_variations ?? [])
-          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          .map((v: any) => ({
-            id: v.id,
-            label: v.label,
-            priceUsd: Number(v.price_usd),
-            priceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined,
-            icon: v.icon,
-            iconImageUrl: v.icon_image_url ?? undefined,
-            reloadlyProductId: v.reloadly_product_id ?? undefined,
-            fieldsOverride: v.fields_override ?? undefined,
-          })),
+        variations: dedupeVariations(
+          (row.product_variations ?? [])
+            .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            .map((v: any) => ({
+              id: v.id,
+              label: v.label,
+              priceUsd: Number(v.price_usd),
+              priceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined,
+              icon: v.icon,
+              iconImageUrl: v.icon_image_url ?? undefined,
+              reloadlyProductId: v.reloadly_product_id ?? undefined,
+              fieldsOverride: v.fields_override ?? undefined,
+            }))
+        ),
       };
     }
   }

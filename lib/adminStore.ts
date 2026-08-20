@@ -10,25 +10,23 @@ import { mockProducts as defaultProducts } from "./mockProducts";
 import type { Product, ProductVariation, GameFieldDef } from "./types";
 import { supabase } from "./supabaseClient";
 import { adminFetch } from "./adminFetch";
+import { dedupeProducts } from "./productUtils";
 
-// Defensa en el cliente contra duplicados: aunque la API ya devuelva datos
-// limpios, si por lo que sea llegan paquetes repetidos (mismo id, o mismo
-// label dentro del mismo producto) no queremos que el formulario del admin
-// los cargue en el estado y los vuelva a guardar tal cual. Se queda con la
-// primera aparición de cada uno.
-function dedupeProducts(products: Product[]): Product[] {
-  return products.map((p) => {
-    const seenIds = new Set<string>();
-    const seenLabels = new Set<string>();
-    const variations = p.variations.filter((v) => {
-      const labelKey = v.label.trim().toLowerCase();
-      if (seenIds.has(v.id) || seenLabels.has(labelKey)) return false;
-      seenIds.add(v.id);
-      seenLabels.add(labelKey);
-      return true;
-    });
-    return { ...p, variations };
-  });
+// Antes de mandar nada al servidor, revisa si algún producto tiene dos
+// paquetes con la misma etiqueta (ej. dos "Nuevo paquete" sin renombrar).
+// Sirve para cortar el guardado ahí mismo con un mensaje claro en vez de
+// dejar que Supabase lo rebote por el constraint único y el admin vea un
+// error de Postgres crudo.
+function findDuplicateLabel(products: Product[]): { product: string; label: string } | null {
+  for (const p of products) {
+    const seen = new Set<string>();
+    for (const v of p.variations) {
+      const key = v.label.trim().toLowerCase();
+      if (seen.has(key)) return { product: p.name, label: v.label };
+      seen.add(key);
+    }
+  }
+  return null;
 }
 
 // Convierte las filas de Supabase (products + product_variations) al mismo
@@ -120,6 +118,12 @@ export function useAdminProducts() {
   // tecla — guardar en cada cambio causaba llamadas simultáneas al mismo
   // endpoint que se pisaban entre sí y duplicaban paquetes en la base.
   const save = useCallback(async () => {
+    const dup = findDuplicateLabel(products);
+    if (dup) {
+      setSaveError(`"${dup.product}" tiene dos paquetes llamados "${dup.label}" — cambia el nombre de uno antes de guardar.`);
+      return false;
+    }
+
     setSaving(true);
     const errorMessage = await persistProductsToApi(products);
     setSaveError(errorMessage);
@@ -189,11 +193,17 @@ export function useAdminProducts() {
           ? p
           : {
               ...p,
+              // Sufijo corto y aleatorio en el id Y en el nombre por
+              // defecto: dos clics rápidos en "+ Agregar paquete" podían
+              // caer en el mismo Date.now(), generando dos paquetes con
+              // id y etiqueta idénticos ("Nuevo paquete") que Supabase
+              // rebotaba al guardar por el constraint único. Con esto,
+              // cada paquete nuevo nace ya distinguible del resto.
               variations: [
                 ...p.variations,
                 {
-                  id: `v${Date.now()}`,
-                  label: "Nuevo paquete",
+                  id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                  label: `Nuevo paquete ${Math.random().toString(36).slice(2, 6)}`,
                   priceUsd: 1,
                   icon: "generic",
                 },

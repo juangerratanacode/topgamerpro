@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
+import { dedupeProducts } from "@/lib/productUtils";
 import type { Product } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     })),
   }));
 
-  return NextResponse.json({ products });
+  return NextResponse.json({ products: dedupeProducts(products) });
 }
 
 // Reemplazo completo del catálogo (mismo patrón que el localStorage
