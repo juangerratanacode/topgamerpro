@@ -19,6 +19,7 @@ export default function AdminPage() {
     hydrated,
     saving,
     saveError,
+    loadError,
     save,
     reload,
     updateProduct,
@@ -83,6 +84,15 @@ export default function AdminPage() {
         Los cambios quedan solo en esta pantalla hasta que tocas "Guardar cambios" abajo — ahí se
         escriben de verdad en la base de datos.
       </p>
+
+      {loadError && (
+        <div className="bg-red-500/10 border border-red-500/40 text-red-300 text-sm rounded-xl p-4 mb-6">
+          <strong>No se pudo cargar el catálogo real de la base de datos:</strong> {loadError}
+          <br />
+          Lo que ves abajo es un catálogo de ejemplo, no tus datos reales — el guardado está
+          bloqueado hasta que recargues la página o le des a "↻ Recargar catálogo".
+        </div>
+      )}
 
       <div className="bg-brand-surface border border-brand-border rounded-2xl p-4 mb-6">
         <h2 className="font-bold text-sm mb-1">Tasas de cambio (moneda de visualización)</h2>

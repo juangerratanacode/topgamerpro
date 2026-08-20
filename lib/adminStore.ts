@@ -72,16 +72,31 @@ export async function fetchProductsFromSupabase(): Promise<Product[] | null> {
   );
 }
 
-async function loadProductsFromApi(): Promise<Product[]> {
+// Antes, si esta llamada fallaba (ej. sesión vencida -> 401, o un error de
+// red), se devolvía en silencio el catálogo de ejemplo hardcodeado en
+// mockProducts.ts — y como ese mock tiene igual cantidad de campos que un
+// producto real, el admin no tenía forma de notar que estaba viendo datos
+// falsos en vez del catálogo real. Peor: si en ese estado alguien guardaba,
+// se sobrescribía la base de datos real con el mock. Ahora un fallo real se
+// reporta como tal en vez de disfrazarse de catálogo vacío/de ejemplo.
+async function loadProductsFromApi(): Promise<{ products: Product[]; error: string | null }> {
   try {
     const res = await adminFetch("/api/admin/products", { cache: "no-store" });
-    if (!res.ok) return defaultProducts;
+    if (!res.ok) {
+      const reason =
+        res.status === 401
+          ? "Tu sesión de admin venció — volvé a iniciar sesión."
+          : `Error ${res.status} al cargar el catálogo.`;
+      return { products: defaultProducts, error: reason };
+    }
     const data = await res.json();
-    return Array.isArray(data.products) && data.products.length > 0
-      ? dedupeProducts(data.products)
-      : defaultProducts;
-  } catch {
-    return defaultProducts;
+    const products = Array.isArray(data.products) ? dedupeProducts(data.products) : [];
+    return { products: products.length > 0 ? products : defaultProducts, error: null };
+  } catch (err) {
+    return {
+      products: defaultProducts,
+      error: err instanceof Error ? err.message : "No se pudo conectar con el servidor.",
+    };
   }
 }
 
@@ -106,10 +121,16 @@ export function useAdminProducts() {
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Cuando esto tiene un valor, lo que se ve en `products` NO es
+  // necesariamente el catálogo real (puede ser el mock de respaldo) — se usa
+  // para bloquear el guardado y avisar en la UI en vez de arriesgarse a
+  // sobrescribir la base de datos real con datos de ejemplo.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProductsFromApi().then((p) => {
+    loadProductsFromApi().then(({ products: p, error }) => {
       setProducts(p);
+      setLoadError(error);
       setHydrated(true);
     });
   }, []);
@@ -120,14 +141,20 @@ export function useAdminProducts() {
   // (ej. un paquete que otra persona guardó desde otra pestaña, o que el
   // servidor guardó pero esta pestaña nunca se enteró).
   const reload = useCallback(async () => {
-    const fresh = await loadProductsFromApi();
+    const { products: fresh, error } = await loadProductsFromApi();
     setProducts(fresh);
+    setLoadError(error);
   }, []);
 
   // Guardado EXPLÍCITO (botón "Guardar cambios"), no automático en cada
   // tecla — guardar en cada cambio causaba llamadas simultáneas al mismo
   // endpoint que se pisaban entre sí y duplicaban paquetes en la base.
   const save = useCallback(async () => {
+    if (loadError) {
+      setSaveError("No se guardó nada: el catálogo no se pudo cargar bien (ver aviso arriba). Recargá la página antes de guardar.");
+      return false;
+    }
+
     const dup = findDuplicateLabel(products);
     if (dup) {
       setSaveError(`"${dup.product}" tiene dos paquetes llamados "${dup.label}" — cambia el nombre de uno antes de guardar.`);
@@ -146,13 +173,14 @@ export function useAdminProducts() {
     // etiqueta, chocando contra el constraint único. Recargar desde la API
     // sincroniza el estado con los ids reales de la base.
     if (!errorMessage) {
-      const fresh = await loadProductsFromApi();
+      const { products: fresh, error } = await loadProductsFromApi();
       setProducts(fresh);
+      setLoadError(error);
     }
 
     setSaving(false);
     return !errorMessage;
-  }, [products]);
+  }, [products, loadError]);
 
   const moveProductUp = useCallback((id: string) => {
     setProducts((prev) => {
@@ -311,6 +339,7 @@ export function useAdminProducts() {
     hydrated,
     saving,
     saveError,
+    loadError,
     save,
     reload,
     updateProduct,
