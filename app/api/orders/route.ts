@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { sendOrderStatusEmail, sendAdminNewOrderNotification } from "@/lib/orderEmail";
 import { sendTelegramOrderNotification } from "@/lib/telegramNotify";
+import { updateOrderStatus } from "@/lib/orderStatus";
 import { getNetPointsBalance, maxRedeemablePoints, pointsToUsd, POINTS_REDEMPTION_STEP } from "@/lib/loyalty";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
     receiptUrl,
   });
 
-  return NextResponse.json({ orderId: order.id, status: order.status });
+  return NextResponse.json({ orderId: order.id, status: order.status, receiptUrl });
 }
 
 // Lista de pedidos para el panel admin (con sus líneas).
@@ -255,65 +256,10 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return NextResponse.json({ error: "No autorizado" }, { status: auth.status });
-  if (!supabaseAdmin) return NextResponse.json({ error: "Supabase no configurado" }, { status: 500 });
 
   const { id, status } = (await req.json()) as { id: string; status: string };
-  const { data: order, error } = await supabaseAdmin
-    .from("orders")
-    .update({ status })
-    .eq("id", id)
-    .select("*, order_items(*)")
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // Si el pedido se rechaza, cualquier canje de puntos que se le haya
-  // aplicado se revierte automáticamente — el cliente nunca debería perder
-  // puntos por un pago que no se confirmó. Como el balance se calcula
-  // siempre como (ganados - canjeados), borrar la fila alcanza para
-  // devolvérselos, sin tocar ninguna columna de "balance" directa.
-  if (order && status === "rechazado") {
-    const { error: refundError } = await supabaseAdmin
-      .from("loyalty_redemptions")
-      .delete()
-      .eq("order_id", order.id);
-    if (refundError) {
-      console.error("Error devolviendo puntos de un pedido rechazado:", refundError);
-    }
-  }
-
-  if (order && (status === "confirmado" || status === "rechazado")) {
-    const customer: CustomerInfo = {
-      firstName: order.customer_first_name,
-      lastName: order.customer_last_name,
-      email: order.customer_email,
-      phone: order.customer_phone,
-    };
-    const items: CartItem[] = (order.order_items ?? []).map((it: any) => ({
-      cartItemId: it.id,
-      productId: it.product_id,
-      productSlug: it.product_slug,
-      productName: it.product_name,
-      variationId: it.variation_id,
-      variationLabel: it.variation_label,
-      unitPriceUsd: Number(it.unit_price_usd),
-      unitPriceUsdPaypal: it.unit_price_usd_paypal != null ? Number(it.unit_price_usd_paypal) : undefined,
-      quantity: it.quantity,
-      gameFields: it.game_fields ?? [],
-      reloadlyProductId: it.reloadly_product_id,
-    }));
-
-    await sendOrderStatusEmail(status === "confirmado" ? "confirmado" : "cancelado", {
-      customer,
-      items,
-      method: order.payment_method,
-      orderId: order.id,
-      totalUsd: Number(order.total_usd),
-      currency: order.currency,
-      totalConverted: order.total_converted != null ? Number(order.total_converted) : Number(order.total_usd),
-      createdAt: new Date(order.created_at),
-    });
-  }
+  const result = await updateOrderStatus(id, status);
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

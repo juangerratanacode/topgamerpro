@@ -25,13 +25,12 @@ interface TelegramOrderParams {
   receiptUrl?: string | null;
 }
 
-// Telegram usa Markdown propio (no el estándar) — caracteres como _ * [ ] ()
-// tienen significado especial y rompen el formato si vienen en un nombre o
-// referencia sin escapar.
-function escapeMarkdown(value: string): string {
-  return value.replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
-}
-
+// Texto plano, sin parse_mode: el MarkdownV2 de Telegram exige escapar a
+// mano casi todos los signos de puntuación (incluido el "." de cualquier
+// monto formateado), y un solo carácter sin escapar tumba el envío entero
+// con un 400 — pasó exactamente eso en la primera versión ("Bs. 4.410"
+// rompía el parseo). Sin parse_mode no hay nada que escapar ni que pueda
+// romperse por un monto, una referencia o un nombre con puntuación.
 function buildMessage(params: TelegramOrderParams): string {
   const { customer, items, method, reference, orderId, totalUsd, currency, totalConverted } = params;
   const { symbol, decimals } = CURRENCY_FORMAT[currency] ?? CURRENCY_FORMAT.USD;
@@ -45,25 +44,24 @@ function buildMessage(params: TelegramOrderParams): string {
     .map((item) => {
       const lineUsd = getItemPriceForMethod(item, method) * item.quantity;
       const fieldsText = item.gameFields
-        .map((f) => `      _${escapeMarkdown(f.label)}:_ ${escapeMarkdown(f.value || "—")}`)
+        .map((f) => `      ${f.label}: ${f.value || "—"}`)
         .join("\n");
       return (
-        `  • ${item.quantity}× *${escapeMarkdown(item.productName)}* — ${escapeMarkdown(item.variationLabel)} ` +
-        `\\($${lineUsd.toFixed(2)}\\)` +
+        `  • ${item.quantity}x ${item.productName} — ${item.variationLabel} ($${lineUsd.toFixed(2)})` +
         (fieldsText ? "\n" + fieldsText : "")
       );
     })
     .join("\n");
 
   return (
-    `🛒 *Nuevo pedido registrado*\n\n` +
-    `*Cliente:* ${escapeMarkdown(customer.firstName)} ${escapeMarkdown(customer.lastName)}\n` +
-    `*Teléfono:* ${escapeMarkdown(customer.phone)}\n` +
-    `*Correo:* ${escapeMarkdown(customer.email)}\n\n` +
-    `*Pedido:*\n${itemsText}\n\n` +
-    `*Monto:* ${totalLabel}\n` +
-    `*Pago:* ${escapeMarkdown(methodLabel)}${reference ? ` · Ref: ${escapeMarkdown(reference)}` : ""}\n\n` +
-    `#${escapeMarkdown(orderId.slice(0, 8).toUpperCase())}`
+    `🛒 Nuevo pedido registrado\n\n` +
+    `Cliente: ${customer.firstName} ${customer.lastName}\n` +
+    `Teléfono: ${customer.phone}\n` +
+    `Correo: ${customer.email}\n\n` +
+    `Pedido:\n${itemsText}\n\n` +
+    `Monto: ${totalLabel}\n` +
+    `Pago: ${methodLabel}${reference ? ` · Ref: ${reference}` : ""}\n\n` +
+    `#${orderId.slice(0, 8).toUpperCase()}`
   );
 }
 
@@ -78,6 +76,16 @@ export async function sendTelegramOrderNotification(params: TelegramOrderParams)
   }
 
   const text = buildMessage(params);
+  // callback_data tiene un límite de 64 bytes en la API de Telegram — el
+  // id completo (36 caracteres) entra bien con el prefijo.
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: "✅ Confirmar pedido", callback_data: `confirm:${params.orderId}` },
+        { text: "❌ Rechazar", callback_data: `reject:${params.orderId}` },
+      ],
+    ],
+  };
 
   try {
     // Si hay foto de comprobante, se manda como sendPhoto con el resumen de
@@ -87,8 +95,8 @@ export async function sendTelegramOrderNotification(params: TelegramOrderParams)
       ? `https://api.telegram.org/bot${token}/sendPhoto`
       : `https://api.telegram.org/bot${token}/sendMessage`;
     const body = params.receiptUrl
-      ? { chat_id: chatId, photo: params.receiptUrl, caption: text, parse_mode: "MarkdownV2" }
-      : { chat_id: chatId, text, parse_mode: "MarkdownV2" };
+      ? { chat_id: chatId, photo: params.receiptUrl, caption: text, reply_markup: replyMarkup }
+      : { chat_id: chatId, text, reply_markup: replyMarkup };
 
     const res = await fetch(endpoint, {
       method: "POST",
