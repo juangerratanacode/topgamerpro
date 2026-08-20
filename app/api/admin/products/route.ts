@@ -51,10 +51,21 @@ export async function PUT(req: NextRequest) {
   if (!auth.ok) return NextResponse.json({ error: "No autorizado" }, { status: auth.status });
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase no configurado" }, { status: 500 });
 
-  const { products } = (await req.json()) as { products: Product[] };
-  if (!Array.isArray(products)) {
+  const { products: rawProducts } = (await req.json()) as { products: Product[] };
+  if (!Array.isArray(rawProducts)) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
+
+  // Defensa contra estado corrupto del cliente (ej. una pestaña vieja del
+  // admin que quedó abierta con datos de antes de una limpieza manual, y
+  // termina reescribiéndolos al guardar sin que el usuario lo note): sin
+  // importar qué mande el navegador, el servidor nunca persiste un
+  // producto repetido por slug ni un paquete repetido por nombre dentro
+  // del mismo producto. Se queda con la ÚLTIMA aparición de cada uno —
+  // es la más reciente en el array tal como lo arma el admin.
+  const productsBySlug = new Map<string, Product>();
+  for (const p of rawProducts) productsBySlug.set(p.slug, p);
+  const products = Array.from(productsBySlug.values());
 
   // slugs que ya no están en el array recibido => se borraron en el admin
   const { data: existing } = await supabaseAdmin.from("products").select("id, slug");
@@ -91,8 +102,12 @@ export async function PUT(req: NextRequest) {
 
     await supabaseAdmin.from("product_variations").delete().eq("product_id", upserted.id);
 
-    if (p.variations.length > 0) {
-      const variationRows = p.variations.map((v, vIndex) => ({
+    const variationsByLabel = new Map<string, (typeof p.variations)[number]>();
+    for (const v of p.variations) variationsByLabel.set(v.label.trim().toLowerCase(), v);
+    const dedupedVariations = Array.from(variationsByLabel.values());
+
+    if (dedupedVariations.length > 0) {
+      const variationRows = dedupedVariations.map((v, vIndex) => ({
         product_id: upserted.id,
         label: v.label,
         price_usd: v.priceUsd,
