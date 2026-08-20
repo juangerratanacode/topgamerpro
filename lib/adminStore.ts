@@ -46,6 +46,11 @@ export async function fetchProductsFromSupabase(): Promise<Product[] | null> {
     return null;
   }
 
+  // Un producto sin paquetes todavía (ej. recién creado en el admin, antes
+  // de cargarle precios) no es comprable — mostrarlo en la tienda pública
+  // rompía la card de producto (ver ProductCard.tsx) y no tiene nada que un
+  // cliente pueda hacer ahí. Se excluye acá, no en el admin: el admin sí
+  // necesita verlo para poder terminarlo de configurar.
   return dedupeProducts(
     rows.map((row: any) => ({
       id: row.id,
@@ -69,7 +74,7 @@ export async function fetchProductsFromSupabase(): Promise<Product[] | null> {
         fieldsOverride: v.fields_override ?? undefined,
       })),
     }))
-  );
+  ).filter((p) => p.variations.length > 0);
 }
 
 // Antes, si esta llamada fallaba (ej. sesión vencida -> 401, o un error de

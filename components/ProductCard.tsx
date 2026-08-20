@@ -9,6 +9,12 @@ import { getPaypalDisplayPrice } from "@/lib/pricing";
 import StarRating from "./StarRating";
 
 export default function ProductCard({ product }: { product: Product }) {
+  // Un producto sin paquetes (ej. un juego recién creado en el admin, antes
+  // de cargarle precios) tumbaba el sitio entero: reduce() sobre un array
+  // vacío sin valor inicial lanza una excepción no capturada. El catálogo ya
+  // filtra estos productos, pero esto queda como resguardo — nunca debería
+  // llegar a renderizarse una card sin paquetes.
+  if (product.variations.length === 0) return null;
   const cheapestVariation = product.variations.reduce((min, v) => (v.priceUsd < min.priceUsd ? v : min));
   const { average, count } = getAverageRating(product.slug);
   const { display, format } = useCurrency();

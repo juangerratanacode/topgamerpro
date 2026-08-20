@@ -82,7 +82,11 @@ export async function generateMetadata({
 export default async function ProductPage({ params }: { params: { slug: string } }) {
   const product = await getProductBySlugServer(params.slug);
 
-  if (!product) {
+  // Sin paquetes todavía (juego recién creado en el admin) no hay nada
+  // comprable que mostrar — y ProductDetailClient asume que existe al
+  // menos uno para preseleccionarlo, así que se trata igual que "no
+  // encontrado" en vez de crashear.
+  if (!product || product.variations.length === 0) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
         <p className="text-brand-textMuted">No encontramos este juego en el catálogo.</p>
