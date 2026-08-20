@@ -5,6 +5,7 @@ import { dedupeProducts } from "@/lib/productUtils";
 import type { Product } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
