@@ -115,10 +115,22 @@ export default function PedidosPage() {
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4 mb-3">
-              <div className="text-sm space-y-1">
+              <div className="text-sm space-y-2">
                 {order.items.map((item, i) => (
-                  <div key={i} className="text-brand-textMuted">
-                    {item.quantity} × {item.productName} — {item.variationLabel}
+                  <div key={i}>
+                    <div className="text-brand-textMuted">
+                      {item.quantity} × {item.productName} — {item.variationLabel}
+                    </div>
+                    {item.gameFields.length > 0 && (
+                      <div className="mt-0.5 pl-3 border-l-2 border-brand-border space-y-0.5">
+                        {item.gameFields.map((f, fi) => (
+                          <div key={fi} className="text-xs">
+                            <span className="text-brand-textMuted">{f.label}:</span>{" "}
+                            <span className="font-semibold">{f.value || "—"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div className="font-bold text-white pt-1">Total: ${order.totalUsd.toFixed(2)}</div>

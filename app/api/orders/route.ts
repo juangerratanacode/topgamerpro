@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
-import { sendOrderStatusEmail } from "@/lib/orderEmail";
+import { sendOrderStatusEmail, sendAdminNewOrderNotification } from "@/lib/orderEmail";
+import { sendTelegramOrderNotification } from "@/lib/telegramNotify";
 import { getNetPointsBalance, maxRedeemablePoints, pointsToUsd, POINTS_REDEMPTION_STEP } from "@/lib/loyalty";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
@@ -172,7 +173,7 @@ export async function POST(req: NextRequest) {
   // El pedido ya quedó guardado — el correo es un extra sobre la
   // confirmación por WhatsApp, así que un fallo acá no debe tumbar la
   // respuesta ni hacer que el cliente vea un error de checkout.
-  await sendOrderStatusEmail("recibido", {
+  const emailParams = {
     customer,
     items,
     method: payment.method,
@@ -181,6 +182,19 @@ export async function POST(req: NextRequest) {
     currency,
     totalConverted: finalTotalConverted ?? finalTotalUsd,
     createdAt: new Date(order.created_at ?? Date.now()),
+  };
+  await sendOrderStatusEmail("recibido", emailParams);
+  await sendAdminNewOrderNotification(emailParams);
+  await sendTelegramOrderNotification({
+    customer,
+    items,
+    method: payment.method,
+    reference: payment.reference,
+    orderId: order.id,
+    totalUsd: finalTotalUsd,
+    currency,
+    totalConverted: finalTotalConverted ?? finalTotalUsd,
+    receiptUrl,
   });
 
   return NextResponse.json({ orderId: order.id, status: order.status });
