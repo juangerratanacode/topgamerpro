@@ -209,16 +209,17 @@ export default function CheckoutForm() {
 
       // wa.me solo puede pre-llenar texto — no hay forma de adjuntar la
       // imagen automáticamente al abrir el chat, así que en vez de decir
-      // "adjunto en este chat" (que nunca pasaba solo) se manda el link
-      // público real de la foto que ya se subió a Supabase al crear el
-      // pedido, para que se pueda abrir con un toque desde WhatsApp.
+      // "adjunto en este chat" (que nunca pasaba solo) se manda un link
+      // corto con dominio propio (topgamerpro.com) que redirige a la foto
+      // real — así el cliente no ve el dominio técnico de Supabase en el
+      // chat, y el link sigue abriendo la imagen con un toque.
       const message = buildWhatsAppMessage(
         customer,
         {
           method,
           reference,
-          receiptUrl: data.receiptUrl
-            ? data.receiptUrl
+          receiptUrl: data.receiptShortUrl
+            ? data.receiptShortUrl
             : method === "paypal"
             ? "pago realizado vía PayPal"
             : "pago realizado vía Binance",

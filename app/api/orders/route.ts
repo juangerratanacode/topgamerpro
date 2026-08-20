@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
     totalConverted != null ? totalConverted * discountRatio : undefined;
 
   let receiptUrl: string | null = null;
+  let receiptShortUrl: string | null = null;
   if (payment.receiptDataUrl) {
     const match = payment.receiptDataUrl.match(/^data:(.+);base64,(.+)$/);
     if (match) {
@@ -106,6 +107,9 @@ export async function POST(req: NextRequest) {
       if (!uploadError) {
         const { data: publicUrl } = supabaseAdmin.storage.from("receipts").getPublicUrl(path);
         receiptUrl = publicUrl.publicUrl;
+        // Link con marca propia para el mensaje de WhatsApp — evita mostrarle
+        // al cliente el dominio técnico de Supabase en el chat.
+        receiptShortUrl = `https://www.topgamerpro.com/api/r/${path}`;
       }
     }
   }
@@ -198,7 +202,7 @@ export async function POST(req: NextRequest) {
     receiptUrl,
   });
 
-  return NextResponse.json({ orderId: order.id, status: order.status, receiptUrl });
+  return NextResponse.json({ orderId: order.id, status: order.status, receiptUrl, receiptShortUrl });
 }
 
 // Lista de pedidos para el panel admin (con sus líneas).
