@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import type { Product } from "@/lib/types";
-import { getAverageRating } from "@/lib/reviews";
+import { useReviewStats } from "@/lib/useReviewStats";
 import { useCurrency } from "@/lib/currencyStore";
 import { getPaypalDisplayPrice } from "@/lib/pricing";
 import StarRating from "./StarRating";
@@ -16,7 +16,7 @@ export default function ProductCard({ product }: { product: Product }) {
   // llegar a renderizarse una card sin paquetes.
   if (product.variations.length === 0) return null;
   const cheapestVariation = product.variations.reduce((min, v) => (v.priceUsd < min.priceUsd ? v : min));
-  const { average, count } = getAverageRating(product.slug);
+  const { average, count } = useReviewStats(product.slug);
   const { display, format } = useCurrency();
 
   // En modo PayPal el precio real es el que se cargó a mano en el admin

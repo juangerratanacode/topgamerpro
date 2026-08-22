@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReviewsForSlug, getAverageRating, type ProductReview } from "@/lib/reviews";
+import { getReviewsForSlug, type ProductReview } from "@/lib/reviews";
 import { readExtraReviews, saveExtraReview } from "@/lib/extraReviewsStore";
 import StarRating from "./StarRating";
 import clsx from "clsx";

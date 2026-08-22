@@ -13,7 +13,7 @@ import { validateGameFields } from "@/lib/validation";
 import GameSpecialNotice from "./GameSpecialNotice";
 import PackageIconDisplay from "./PackageIconDisplay";
 import StarRating from "./StarRating";
-import { getAverageRating } from "@/lib/reviews";
+import { useReviewStats } from "@/lib/useReviewStats";
 import clsx from "clsx";
 
 export default function ProductDetailClient({ product }: { product: Product }) {
@@ -25,7 +25,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
   const activeFields = getVariationFields(product, selectedVariation.id);
   const fieldsWithHelp = activeFields.filter((f) => f.helpText);
-  const { average, count } = getAverageRating(product.slug);
+  const { average, count } = useReviewStats(product.slug);
 
   // En modo PayPal, el precio real es el que se cargó a mano en el admin
   // para este paquete (o la fórmula de respaldo si no se cargó ninguno) —
