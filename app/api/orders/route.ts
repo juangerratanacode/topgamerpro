@@ -5,6 +5,7 @@ import { sendOrderStatusEmail, sendAdminNewOrderNotification } from "@/lib/order
 import { sendTelegramOrderNotification } from "@/lib/telegramNotify";
 import { updateOrderStatus } from "@/lib/orderStatus";
 import { getNetPointsBalance, maxRedeemablePoints, pointsToUsd, POINTS_REDEMPTION_STEP } from "@/lib/loyalty";
+import { getCartTotalForMethod } from "@/lib/pricing";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
 
@@ -27,7 +28,57 @@ export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase no configurado" }, { status: 500 });
 
   const body = (await req.json()) as CreateOrderBody;
-  const { customer, items, currency, payment, totalUsd, totalConverted } = body;
+  const { customer, items, currency, payment, totalConverted: clientTotalConverted } = body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return NextResponse.json({ error: "El carrito está vacío." }, { status: 400 });
+  }
+
+  // Nunca se confía en item.unitPriceUsd/unitPriceUsdPaypal ni en el total
+  // que manda el navegador — hasta acá se podía crear un pedido con
+  // cualquier precio inventado (ej. $0.01) que después alguien con acceso
+  // de admin (o, antes de este mismo commit, cualquier cuenta registrada)
+  // podía autoconfirmar. Se recalcula todo desde los precios reales
+  // guardados en product_variations, y solo se acepta el pedido si CADA
+  // línea corresponde a un paquete real que sigue existiendo.
+  const variationIds = [...new Set(items.map((i) => i.variationId).filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
+  const { data: realVariations, error: variationsError } = await supabaseAdmin
+    .from("product_variations")
+    .select("id, price_usd, price_usd_paypal")
+    .in("id", variationIds.length > 0 ? variationIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  if (variationsError) {
+    return NextResponse.json({ error: variationsError.message }, { status: 500 });
+  }
+
+  const realPriceById = new Map(
+    (realVariations ?? []).map((v) => [
+      v.id,
+      { unitPriceUsd: Number(v.price_usd), unitPriceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined },
+    ])
+  );
+
+  const verifiedItems: CartItem[] = [];
+  for (const item of items) {
+    const real = realPriceById.get(item.variationId);
+    if (!real) {
+      return NextResponse.json(
+        { error: "Uno de los paquetes de tu carrito ya no está disponible. Actualiza la página e intenta de nuevo." },
+        { status: 400 }
+      );
+    }
+    verifiedItems.push({ ...item, unitPriceUsd: real.unitPriceUsd, unitPriceUsdPaypal: real.unitPriceUsdPaypal });
+  }
+
+  const totalUsd = getCartTotalForMethod(verifiedItems, payment.method);
+  // El total ya convertido a la moneda que eligió el cliente (Bs., etc.) es
+  // solo para mostrar en el correo/WhatsApp — se reconstruye a partir de la
+  // tasa implícita que mandó el navegador (totalConverted/totalUsd del
+  // body), aplicada sobre el total YA verificado, en vez de usar el monto
+  // convertido tal cual vino (que estaba atado al precio no verificado).
+  const impliedRate =
+    body.totalUsd > 0 && clientTotalConverted != null ? clientTotalConverted / body.totalUsd : null;
+  const totalConverted = impliedRate != null ? totalUsd * impliedRate : undefined;
 
   // Si el cliente tiene sesión iniciada, el front manda el access token en
   // el header Authorization — lo verificamos acá (nunca confiamos en un
@@ -137,7 +188,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: orderError?.message ?? "Error creando la orden" }, { status: 500 });
   }
 
-  const itemRows = items.map((item) => ({
+  const itemRows = verifiedItems.map((item) => ({
     order_id: order.id,
     product_id: /^[0-9a-f-]{36}$/i.test(item.productId) ? item.productId : null,
     product_slug: item.productSlug,
@@ -180,7 +231,7 @@ export async function POST(req: NextRequest) {
   // respuesta ni hacer que el cliente vea un error de checkout.
   const emailParams = {
     customer,
-    items,
+    items: verifiedItems,
     method: payment.method,
     orderId: order.id,
     totalUsd: finalTotalUsd,
@@ -192,7 +243,7 @@ export async function POST(req: NextRequest) {
   await sendAdminNewOrderNotification(emailParams);
   await sendTelegramOrderNotification({
     customer,
-    items,
+    items: verifiedItems,
     method: payment.method,
     reference: payment.reference,
     orderId: order.id,
