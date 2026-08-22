@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Product, ProductVariation, GameFieldValue } from "@/lib/types";
 import { useCart } from "@/lib/cartStore";
 import { useCurrency } from "@/lib/currencyStore";
@@ -19,6 +19,7 @@ import clsx from "clsx";
 export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation>(product.variations[0]);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [descriptionOpen, setDescriptionOpen] = useState(true);
   const { addItem } = useCart();
   const { display, format } = useCurrency();
   const router = useRouter();
@@ -143,9 +144,18 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         </div>
 
         {product.shortDescription && (
-          <p className="mb-5 text-brand-textMuted text-sm leading-relaxed whitespace-pre-line">
-            {product.shortDescription}
-          </p>
+          <div className="mb-5 bg-brand-surface border border-brand-border rounded-xl p-4">
+            {/* A diferencia de la descripción larga, acá NO se respetan los
+                saltos de línea tal cual — este campo es para 1-2 líneas, y
+                el contenido cargado desde el sitio original a veces trae
+                saltos de línea a mitad de oración (de cuando el texto
+                estaba pensado para un ancho de columna distinto), lo que
+                cortaba las frases de forma rara. Colapsar todo a espacios
+                deja que el texto fluya y se ajuste solo al ancho real. */}
+            <p className="text-brand-textMuted text-sm leading-relaxed">
+              {product.shortDescription.replace(/\s*\n\s*/g, " ")}
+            </p>
+          </div>
         )}
 
         <GameSpecialNotice product={product} />
@@ -261,11 +271,31 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         </motion.button>
 
         {product.description && (
-          <div className="mt-6 bg-brand-surface border border-brand-border rounded-xl p-4">
-            <div className="font-semibold text-sm mb-2">Descripción del producto</div>
-            <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line">
-              {product.description}
-            </p>
+          <div className="mt-6 bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
+            <button
+              onClick={() => setDescriptionOpen((o) => !o)}
+              className="w-full flex items-center justify-between p-4 text-left"
+            >
+              <span className="font-semibold text-sm">Descripción del producto</span>
+              <span className={clsx("transition-transform text-brand-textMuted shrink-0", descriptionOpen && "rotate-180")}>
+                ▾
+              </span>
+            </button>
+            <AnimatePresence initial={false}>
+              {descriptionOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line px-4 pb-4">
+                    {product.description}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </motion.div>
