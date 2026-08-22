@@ -1,22 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { readAllExtraReviews, deleteExtraReview, type StoredReview } from "@/lib/extraReviewsStore";
+import { adminFetch } from "@/lib/adminFetch";
+import type { ProductReview } from "@/lib/useReviewStats";
 import StarRating from "@/components/StarRating";
 
 export default function ComentariosPage() {
-  const [reviews, setReviews] = useState<StoredReview[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    setReviews(readAllExtraReviews());
+  async function refresh() {
+    const res = await adminFetch("/api/reviews", { cache: "no-store" });
+    const data = await res.json().catch(() => null);
+    setReviews(Array.isArray(data?.reviews) ? data.reviews : []);
     setHydrated(true);
+  }
+
+  useEffect(() => {
+    refresh();
   }, []);
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("¿Eliminar esta reseña?")) return;
-    deleteExtraReview(id);
-    setReviews(readAllExtraReviews());
+    await adminFetch(`/api/reviews?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    refresh();
   }
 
   if (!hydrated) {
@@ -44,7 +51,7 @@ export default function ComentariosPage() {
                 <span className="font-semibold text-sm">{r.author}</span>
                 {r.email && <span className="text-xs text-brand-textMuted ml-2">({r.email})</span>}
                 <span className="text-xs text-brand-textMuted ml-2">
-                  en <span className="text-brand-primary">{r.slug}</span> · {r.date}
+                  en <span className="text-brand-primary">{r.productSlug}</span> · {r.date}
                 </span>
               </div>
               <StarRating rating={r.rating} />

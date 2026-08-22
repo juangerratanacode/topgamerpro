@@ -15,14 +15,24 @@ export async function updateOrderStatus(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!supabaseAdmin) return { ok: false, error: "Supabase no configurado" };
 
+  // .neq("status", status): si el pedido YA está en ese estado, el update
+  // no toca ninguna fila y "order" sale null — así se corta acá antes de
+  // repetir el reembolso de puntos o reenviar el correo. Sin esto, tocar
+  // "Confirmar" dos veces seguidas (ej. una vez desde el botón de Telegram
+  // y otra desde el panel, antes de que la primera termine) mandaba el
+  // correo de confirmación duplicado; no rompía nada hoy porque no hay más
+  // efectos secundarios que ese, pero cualquier lógica que se agregue a
+  // futuro (descuento de stock, etc.) sí se dispararía dos veces.
   const { data: order, error } = await supabaseAdmin
     .from("orders")
     .update({ status })
     .eq("id", id)
+    .neq("status", status)
     .select("*, order_items(*)")
-    .single();
+    .maybeSingle();
 
   if (error) return { ok: false, error: error.message };
+  if (!order) return { ok: true };
 
   // Si el pedido se rechaza, cualquier canje de puntos que se le haya
   // aplicado se revierte automáticamente — el cliente nunca debería perder

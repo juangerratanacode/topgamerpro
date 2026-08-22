@@ -1,49 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getReviewsForSlug, type ProductReview } from "@/lib/reviews";
-import { readExtraReviews, saveExtraReview } from "@/lib/extraReviewsStore";
+import { useState } from "react";
+import { useReviewStats, invalidateReviewsCache } from "@/lib/useReviewStats";
 import StarRating from "./StarRating";
 import clsx from "clsx";
 
 export default function ProductReviews({ slug, productName }: { slug: string; productName: string }) {
-  const baseReviews = getReviewsForSlug(slug);
-  const [extra, setExtra] = useState<ProductReview[]>([]);
+  const { average, count, all } = useReviewStats(slug);
   const [showForm, setShowForm] = useState(false);
   const [author, setAuthor] = useState("");
   const [email, setEmail] = useState("");
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(5);
   const [visibleCount, setVisibleCount] = useState(6);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setExtra(readExtraReviews(slug));
-  }, [slug]);
-
-  const all = [...extra, ...baseReviews];
-  const totalCount = all.length;
-  const avg =
-    totalCount > 0
-      ? Math.round((all.reduce((acc, r) => acc + r.rating, 0) / totalCount) * 10) / 10
-      : 0;
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!author.trim() || !email.trim() || !content.trim()) return;
-    const review: ProductReview = {
-      author: author.trim(),
-      email: email.trim(),
-      content: content.trim(),
-      rating,
-      date: new Date().toISOString().slice(0, 10),
-    };
-    saveExtraReview(slug, review);
-    setExtra((prev) => [review, ...prev]);
-    setAuthor("");
-    setEmail("");
-    setContent("");
-    setRating(5);
-    setShowForm(false);
+
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productSlug: slug,
+          author: author.trim(),
+          email: email.trim(),
+          content: content.trim(),
+          rating,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setSubmitError(data?.error ?? "No se pudo publicar la reseña.");
+        return;
+      }
+      invalidateReviewsCache();
+      setAuthor("");
+      setEmail("");
+      setContent("");
+      setRating(5);
+      setShowForm(false);
+      // useReviewStats vuelve a pedir la lista recién en el próximo mount —
+      // forzamos un refresh de la página actual para que la reseña nueva
+      // aparezca de una, sin tener que navegar para verla.
+      window.location.reload();
+    } catch {
+      setSubmitError("No se pudo conectar con el servidor.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -51,11 +61,11 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold mb-1">Opiniones sobre {productName}</h2>
-          {totalCount > 0 ? (
+          {count > 0 ? (
             <div className="flex items-center gap-2 text-sm text-brand-textMuted">
-              <StarRating rating={avg} size="md" />
-              <span className="font-semibold text-white">{avg}</span>
-              <span>· {totalCount} reseñas</span>
+              <StarRating rating={average} size="md" />
+              <span className="font-semibold text-white">{average}</span>
+              <span>· {count} reseñas</span>
             </div>
           ) : (
             <p className="text-sm text-brand-textMuted">Sé el primero en dejar una opinión.</p>
@@ -119,19 +129,21 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
             rows={3}
             className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary resize-none"
           />
+          {submitError && <p className="text-xs text-red-400">{submitError}</p>}
           <button
             type="submit"
-            className="bg-brand-primary hover:bg-brand-primaryDark text-brand-bg font-bold px-5 py-2.5 rounded-full text-sm transition-colors"
+            disabled={submitting}
+            className="bg-brand-primary hover:bg-brand-primaryDark disabled:opacity-50 text-brand-bg font-bold px-5 py-2.5 rounded-full text-sm transition-colors"
           >
-            Publicar reseña
+            {submitting ? "Publicando..." : "Publicar reseña"}
           </button>
         </form>
       )}
 
-      {totalCount > 0 && (
+      {count > 0 && (
         <div className="grid sm:grid-cols-2 gap-4">
-          {all.slice(0, visibleCount).map((r, i) => (
-            <div key={i} className="bg-brand-surface border border-brand-border rounded-2xl p-5">
+          {all.slice(0, visibleCount).map((r) => (
+            <div key={r.id} className="bg-brand-surface border border-brand-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-sm">{r.author}</span>
                 <StarRating rating={r.rating} />
@@ -143,7 +155,7 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
         </div>
       )}
 
-      {visibleCount < totalCount && (
+      {visibleCount < count && (
         <div className="text-center mt-6">
           <button
             onClick={() => setVisibleCount((c) => c + 6)}

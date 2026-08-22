@@ -30,8 +30,12 @@ const SOPORTE_URL = "https://www.topgamerpro.com/soporte";
 const SOPORTE_LINK = `<a href="${SOPORTE_URL}" style="color:${BRAND_PRIMARY};text-decoration:underline;">soporte</a>`;
 
 // footerHtml es HTML crudo (no pasa por escapeHtml) porque necesita el link
-// de soporte — son textos fijos que escribimos nosotros, no algo que venga
-// del cliente, así que no hay riesgo de inyección.
+// de soporte — son textos fijos que escribimos nosotros acá en el código,
+// no algo que venga del cliente, así que no hay riesgo de inyección HOY.
+// Advertencia si esto cambia: si alguna vez este texto se vuelve editable
+// desde el admin (como la descripción del catálogo), hay que escaparlo
+// antes de interpolarlo acá, o pasar a construir el link de soporte aparte
+// en vez de dentro de un string editable.
 const STATUS_COPY: Record<
   OrderEmailStatus,
   { subject: string; heading: string; intro: string; footerHtml: string; accent: string }
@@ -180,47 +184,6 @@ function buildOrderEmailHtml(status: OrderEmailStatus, params: OrderEmailParams)
       </div>
     </div>
   </div>`;
-}
-
-// Aviso interno para el dueño del negocio (no el cliente) cada vez que
-// entra un pedido nuevo — el equivalente a la notificación que WooCommerce
-// mandaba antes. Como no hay una app propia con push notifications, la
-// forma más simple y confiable de que esto llegue al celular es un correo
-// a una casilla que ya tenga notificaciones activadas (ej. Gmail).
-export async function sendAdminNewOrderNotification(params: OrderEmailParams): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL;
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
-
-  if (!apiKey || !fromEmail || !adminEmail) {
-    console.warn(
-      "RESEND_API_KEY, RESEND_FROM_EMAIL o ADMIN_NOTIFICATION_EMAIL no configurados — se omite el aviso de pedido nuevo al admin."
-    );
-    return;
-  }
-
-  const { customer, items, orderId, totalUsd } = params;
-  const itemsText = items
-    .map((item) => {
-      const fieldsText = item.gameFields.map((f) => `    ${f.label}: ${f.value}`).join("\n");
-      return `${item.quantity} × ${item.productName} — ${item.variationLabel}${fieldsText ? "\n" + fieldsText : ""}`;
-    })
-    .join("\n");
-
-  try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: fromEmail,
-      to: adminEmail,
-      subject: `🔔 Pedido nuevo #${orderId.slice(0, 8).toUpperCase()} — $${totalUsd.toFixed(2)}`,
-      text: `Nuevo pedido de ${customer.firstName} ${customer.lastName} (${customer.phone} · ${customer.email})\n\n${itemsText}\n\nTotal: $${totalUsd.toFixed(2)}\n\nRevisalo en https://www.topgamerpro.com/admin/pedidos`,
-    });
-    if (error) {
-      console.error("Resend devolvió un error al enviar el aviso de pedido nuevo al admin:", error);
-    }
-  } catch (err) {
-    console.error("Error enviando el aviso de pedido nuevo al admin:", err);
-  }
 }
 
 // Nunca debe romper la creación/actualización del pedido: si falla el

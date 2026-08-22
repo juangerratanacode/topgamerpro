@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
-import { sendOrderStatusEmail, sendAdminNewOrderNotification } from "@/lib/orderEmail";
+import { sendOrderStatusEmail } from "@/lib/orderEmail";
 import { sendTelegramOrderNotification } from "@/lib/telegramNotify";
 import { updateOrderStatus } from "@/lib/orderStatus";
 import { getNetPointsBalance, maxRedeemablePoints, pointsToUsd, POINTS_REDEMPTION_STEP } from "@/lib/loyalty";
@@ -240,7 +240,6 @@ export async function POST(req: NextRequest) {
     createdAt: new Date(order.created_at ?? Date.now()),
   };
   await sendOrderStatusEmail("recibido", emailParams);
-  await sendAdminNewOrderNotification(emailParams);
   await sendTelegramOrderNotification({
     customer,
     items: verifiedItems,

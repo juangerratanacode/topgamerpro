@@ -60,18 +60,30 @@ export function useOrders() {
     refresh();
   }, [refresh]);
 
-  const updateStatus = useCallback(async (id: string, status: OrderStatus) => {
+  // Antes esto era "puro optimismo": si el PATCH fallaba (sesión vencida,
+  // red caída, lo que sea), el error se tragaba en silencio y la pantalla
+  // se quedaba mostrando "Confirmado" aunque en la base siguiera
+  // "pendiente" — nada avisaba que había que reintentar. Ahora, si falla,
+  // se revierte el cambio optimista y se devuelve el error para que la
+  // pantalla lo muestre.
+  const updateStatus = useCallback(async (id: string, status: OrderStatus): Promise<string | null> => {
+    const previousStatus = orders.find((o) => o.id === id)?.status;
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
     try {
-      await adminFetch("/api/orders", {
+      const res = await adminFetch("/api/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status }),
       });
-    } catch {
-      // si falla, un refresh manual del admin vuelve a traer el estado real
+      if (res.ok) return null;
+      if (previousStatus) setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: previousStatus } : o)));
+      const body = await res.json().catch(() => null);
+      return body?.error ?? `Error ${res.status} al actualizar el pedido.`;
+    } catch (err) {
+      if (previousStatus) setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: previousStatus } : o)));
+      return err instanceof Error ? err.message : "No se pudo conectar con el servidor.";
     }
-  }, []);
+  }, [orders]);
 
   return { orders, hydrated, refresh, updateStatus };
 }

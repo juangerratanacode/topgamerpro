@@ -157,21 +157,30 @@ export default function PedidosPage() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => updateStatus(order.id, "confirmado")}
+                onClick={async () => {
+                  const error = await updateStatus(order.id, "confirmado");
+                  if (error) alert(`No se pudo confirmar el pedido: ${error}`);
+                }}
                 disabled={order.status === "confirmado"}
                 className="text-xs font-semibold bg-brand-green/15 text-brand-green border border-brand-green/30 rounded-full px-3 py-1.5 disabled:opacity-40"
               >
                 Confirmar
               </button>
               <button
-                onClick={() => updateStatus(order.id, "rechazado")}
+                onClick={async () => {
+                  const error = await updateStatus(order.id, "rechazado");
+                  if (error) alert(`No se pudo rechazar el pedido: ${error}`);
+                }}
                 disabled={order.status === "rechazado"}
                 className="text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30 rounded-full px-3 py-1.5 disabled:opacity-40"
               >
                 Rechazar
               </button>
               <button
-                onClick={() => updateStatus(order.id, "pendiente")}
+                onClick={async () => {
+                  const error = await updateStatus(order.id, "pendiente");
+                  if (error) alert(`No se pudo actualizar el pedido: ${error}`);
+                }}
                 disabled={order.status === "pendiente"}
                 className="text-xs font-semibold bg-brand-surfaceLight text-brand-textMuted border border-brand-border rounded-full px-3 py-1.5 disabled:opacity-40"
               >

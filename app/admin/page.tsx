@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { useOrders } from "@/lib/ordersStore";
-import { reviewsBySlug } from "@/lib/reviews";
 import { useStorefrontProducts } from "@/lib/adminStore";
 import AnimatedCounter from "@/components/AnimatedCounter";
 
@@ -26,6 +25,14 @@ function isoDay(iso: string) {
 export default function AdminDashboard() {
   const { orders, hydrated } = useOrders();
   const { products } = useStorefrontProducts();
+  const [totalReviews, setTotalReviews] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/reviews", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { reviews: [] }))
+      .then((data) => setTotalReviews(Array.isArray(data.reviews) ? data.reviews.length : 0))
+      .catch(() => {});
+  }, []);
 
   const stats = useMemo(() => {
     const confirmed = orders.filter((o) => o.status === "confirmado");
@@ -65,8 +72,6 @@ export default function AdminDashboard() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    const totalReviews = Object.values(reviewsBySlug).reduce((acc, arr) => acc + arr.length, 0);
-
     return {
       orderCount: orders.length,
       pendingCount: pending.length,
@@ -74,7 +79,6 @@ export default function AdminDashboard() {
       customerCount: uniqueCustomers.size,
       days,
       topProducts,
-      totalReviews,
       recent: orders.slice(0, 5),
     };
   }, [orders]);
@@ -89,7 +93,7 @@ export default function AdminDashboard() {
         <h1 className="text-2xl font-extrabold mb-1">Resumen del negocio</h1>
         <p className="text-sm text-brand-textMuted mb-8">
           Vista general de {products.length} juegos activos, {stats.orderCount} pedidos y{" "}
-          {stats.totalReviews.toLocaleString()} reseñas reales de tus clientes.
+          {totalReviews.toLocaleString()} reseñas reales de tus clientes.
         </p>
       </motion.div>
 
