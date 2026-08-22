@@ -98,5 +98,15 @@ export function nationalNumberLengthHint(dial: string): string {
   if (!rules) return "7 a 12 dígitos";
   const lengthPart = rules.min === rules.max ? `${rules.min} dígitos` : `${rules.min} a ${rules.max} dígitos`;
   if (!rules.prefixes) return lengthPart;
-  return `${lengthPart}, empieza con ${rules.prefixes.join(", ")}`;
+  return `${lengthPart}, empieza con ${rules.prefixes.join(", ")} (con o sin el 0 adelante)`;
+}
+
+// Largo real máximo (ya sin el 0 inicial) — se usa para recortar lo que se
+// escribe o pega, DESPUÉS de sacar el 0. No se usa el atributo nativo
+// maxLength del <input>: como actúa sobre el texto crudo antes de sacarle
+// el 0, cortaría mal a alguien que pega "04121234567" completo de una vez
+// (cortaría el último dígito real en vez del 0 sobrante).
+export function nationalNumberMaxLength(dial?: string): number {
+  const rules = dial ? NATIONAL_RULES_BY_DIAL[dial] : undefined;
+  return rules?.max ?? 12;
 }

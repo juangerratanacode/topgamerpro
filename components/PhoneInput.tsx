@@ -6,6 +6,7 @@ import {
   flagEmoji,
   isValidNationalNumber,
   nationalNumberLengthHint,
+  nationalNumberMaxLength,
   stripLeadingZero,
 } from "@/lib/countryCodes";
 import clsx from "clsx";
@@ -86,15 +87,21 @@ export default function PhoneInput({
           type="tel"
           inputMode="numeric"
           value={value.national}
-          onChange={(e) =>
+          onChange={(e) => {
             // El "0" inicial es solo un prefijo de marcado local (ej.
             // "04121234567") — no forma parte del número real. Si se
             // guardara tal cual, el número nacional quedaría con un dígito
             // de más y el +58 terminaría duplicado con esa marca ("+580412...")
             // en vez de formar el E.164 correcto. Se saca acá, apenas se
-            // escribe, para que nunca llegue a guardarse ni a validarse.
-            onChange({ ...value, national: e.target.value.replace(/[^0-9]/g, "").replace(/^0+/, "") })
-          }
+            // escribe (o se pega), para que nunca llegue a guardarse ni a
+            // validarse — y recién DESPUÉS de sacarlo se recorta al largo
+            // real del país, para no cortar mal un número pegado de una
+            // sola vez con el 0 adelante.
+            const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+            const withoutLeadingZero = stripLeadingZero(digitsOnly);
+            const capped = withoutLeadingZero.slice(0, nationalNumberMaxLength(value.dial));
+            onChange({ ...value, national: capped });
+          }}
           placeholder="4121234567"
           className="flex-1 min-w-0 bg-transparent px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none"
         />
