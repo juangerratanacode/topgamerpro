@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { readAllExtraReviews, deleteExtraReview, type StoredReview } from "@/lib/extraReviewsStore";
-import { reviewsBySlug } from "@/lib/reviews";
 import StarRating from "@/components/StarRating";
-
-const importedTotal = Object.values(reviewsBySlug).reduce((acc, arr) => acc + arr.length, 0);
 
 export default function ComentariosPage() {
   const [reviews, setReviews] = useState<StoredReview[]>([]);
@@ -30,9 +27,7 @@ export default function ComentariosPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="text-2xl font-extrabold mb-2">Comentarios</h1>
       <p className="text-sm text-brand-textMuted mb-6">
-        {importedTotal} reseñas importadas de pitcharge.com se muestran de base en cada producto
-        (no se pueden borrar aquí porque son contenido histórico). Las que escriben tus clientes
-        nuevos en la web sí puedes moderarlas abajo.
+        Reseñas que escriben tus clientes desde la web — podés moderarlas (borrarlas) abajo.
       </p>
 
       {reviews.length === 0 && (
@@ -47,6 +42,7 @@ export default function ComentariosPage() {
             <div className="flex items-start justify-between gap-3 mb-1">
               <div>
                 <span className="font-semibold text-sm">{r.author}</span>
+                {r.email && <span className="text-xs text-brand-textMuted ml-2">({r.email})</span>}
                 <span className="text-xs text-brand-textMuted ml-2">
                   en <span className="text-brand-primary">{r.slug}</span> · {r.date}
                 </span>

@@ -26,7 +26,6 @@ export default function ReviewsCarousel() {
       <div className="flex items-end justify-between mb-4">
         <div>
           <h2 className="text-xl font-extrabold">Lo que dicen nuestros clientes</h2>
-          <p className="text-sm text-brand-textMuted">Reseñas reales de compras confirmadas por WhatsApp.</p>
         </div>
         <div className="hidden sm:flex gap-2">
           <button

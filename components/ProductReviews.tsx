@@ -11,6 +11,7 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
   const [extra, setExtra] = useState<ProductReview[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [author, setAuthor] = useState("");
+  const [email, setEmail] = useState("");
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(5);
   const [visibleCount, setVisibleCount] = useState(6);
@@ -28,9 +29,10 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!author.trim() || !content.trim()) return;
+    if (!author.trim() || !email.trim() || !content.trim()) return;
     const review: ProductReview = {
       author: author.trim(),
+      email: email.trim(),
       content: content.trim(),
       rating,
       date: new Date().toISOString().slice(0, 10),
@@ -38,6 +40,7 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
     saveExtraReview(slug, review);
     setExtra((prev) => [review, ...prev]);
     setAuthor("");
+    setEmail("");
     setContent("");
     setRating(5);
     setShowForm(false);
@@ -91,13 +94,23 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
               ))}
             </div>
           </div>
-          <input
-            required
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder="Tu nombre"
-            className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
-          />
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input
+              required
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="Tu nombre"
+              className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
+            />
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Tu correo (no se publica)"
+              className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
+            />
+          </div>
           <textarea
             required
             value={content}
