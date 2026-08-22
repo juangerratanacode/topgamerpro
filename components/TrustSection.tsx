@@ -42,15 +42,19 @@ const TRUST_ITEMS = [
 export default function TrustSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <h2 className="text-center text-base sm:text-lg font-black uppercase tracking-wide text-white mb-4 sm:mb-5">
+      <h2
+        className="text-center text-base sm:text-lg font-black uppercase tracking-wide mb-4 sm:mb-5
+          bg-gradient-to-r from-brand-primary via-white to-brand-gold bg-clip-text text-transparent
+          drop-shadow-[0_0_18px_rgba(14,165,233,0.35)]"
+      >
         {TITLE.split(" ").map((word, i) => (
-          <span key={i} className="inline-block overflow-hidden align-bottom mr-[0.28em] pb-1 -mb-1">
+          <span key={i} className="inline-block align-bottom mr-[0.28em] pb-1 -mb-1">
             <motion.span
               className="inline-block"
-              initial={{ y: "110%" }}
-              whileInView={{ y: "0%" }}
+              initial={{ y: 25, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.5, delay: i * 0.07, ease: "easeOut" }}
             >
               {word}
             </motion.span>
