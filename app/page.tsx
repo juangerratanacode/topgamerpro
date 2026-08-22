@@ -5,7 +5,7 @@ import TrustSection from "@/components/TrustSection";
 import CatalogSection from "@/components/CatalogSection";
 import CatalogSkeleton from "@/components/CatalogSkeleton";
 import HomeSection from "@/components/HomeSection";
-import BenefitsSection from "@/components/BenefitsSection";
+import ReviewsCarousel from "@/components/ReviewsCarousel";
 import { getHomeData } from "@/lib/homeData.server";
 
 // Server Component: los datos ya vienen resueltos en el HTML que manda el
@@ -34,7 +34,7 @@ export default async function HomePage() {
       </HomeSection>
 
       <HomeSection delay={0.16}>
-        <BenefitsSection />
+        <ReviewsCarousel />
       </HomeSection>
 
       <HomeSection delay={0.24}>
