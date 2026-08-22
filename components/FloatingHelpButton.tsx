@@ -29,12 +29,7 @@ export default function FloatingHelpButton() {
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="9" />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9.5 9a2.5 2.5 0 114.2 1.8c-.7.65-1.7 1.05-1.7 2.2"
-            />
-            <circle cx="12" cy="16.5" r="0.75" fill="currentColor" stroke="none" />
+            <path d="M10 8.5l5 3.5-5 3.5v-7z" fill="currentColor" stroke="none" />
           </svg>
           <span className="hidden sm:inline">Aprende a recargar</span>
         </button>
