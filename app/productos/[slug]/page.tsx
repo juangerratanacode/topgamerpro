@@ -22,6 +22,7 @@ async function getProductBySlugServer(slug: string): Promise<Product | undefined
         id: row.id,
         slug: row.slug,
         name: row.name,
+        shortDescription: row.short_description ?? undefined,
         description: row.description ?? undefined,
         imageUrl: row.image_url ?? undefined,
         category: row.category,
@@ -63,7 +64,7 @@ export async function generateMetadata({
 
   const title = `${product.name} — Recarga rápida | TopGamerPro`;
   const description =
-    product.description?.slice(0, 160) ||
+    (product.shortDescription || product.description)?.slice(0, 160) ||
     `Recarga ${product.name} de forma rápida y segura con Pago Móvil o PayPal. Entrega en minutos.`;
 
   return {

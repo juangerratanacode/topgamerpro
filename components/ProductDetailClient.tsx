@@ -142,12 +142,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           </button>
         </div>
 
-        {product.description && (
-          <div className="mb-5 bg-brand-surface border border-brand-border rounded-xl p-4">
-            <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line">
-              {product.description}
-            </p>
-          </div>
+        {product.shortDescription && (
+          <p className="mb-5 text-brand-textMuted text-sm leading-relaxed whitespace-pre-line">
+            {product.shortDescription}
+          </p>
         )}
 
         <GameSpecialNotice product={product} />
@@ -261,6 +259,15 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         >
           Agregar al carrito — {formatVariationPrice(selectedVariation)}
         </motion.button>
+
+        {product.description && (
+          <div className="mt-6 bg-brand-surface border border-brand-border rounded-xl p-4">
+            <div className="font-semibold text-sm mb-2">Descripción del producto</div>
+            <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line">
+              {product.description}
+            </p>
+          </div>
+        )}
       </motion.div>
     </div>
   );

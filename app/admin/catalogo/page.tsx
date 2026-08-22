@@ -237,14 +237,27 @@ export default function AdminPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-brand-textMuted mb-1">
-                      Descripción
+                      Descripción corta
+                    </label>
+                    <textarea
+                      value={product.shortDescription ?? ""}
+                      onChange={(e) => updateProduct(product.id, { shortDescription: e.target.value })}
+                      className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-3 py-2.5 text-sm leading-relaxed resize-y"
+                      rows={2}
+                      placeholder="Una o dos líneas — se ve junto al producto, arriba de los paquetes."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-brand-textMuted mb-1">
+                      Descripción completa
                     </label>
                     <textarea
                       value={product.description ?? ""}
                       onChange={(e) => updateProduct(product.id, { description: e.target.value })}
                       className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-3 py-2.5 text-sm leading-relaxed resize-y"
                       rows={6}
-                      placeholder="Explicá cómo funciona la recarga de este juego, requisitos de la cuenta, etc."
+                      placeholder="Explicá en detalle cómo funciona la recarga, requisitos de la cuenta, etc. — se muestra en su propia sección debajo del botón de compra."
                     />
                     <p className="text-[11px] text-brand-textMuted mt-1">
                       Los saltos de línea (Enter) se respetan tal cual en la página del producto —

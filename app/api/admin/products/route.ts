@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     id: row.id,
     slug: row.slug,
     name: row.name,
+    shortDescription: row.short_description ?? undefined,
     description: row.description ?? undefined,
     imageUrl: row.image_url ?? undefined,
     category: row.category,
@@ -86,6 +87,7 @@ export async function PUT(req: NextRequest) {
         {
           slug: p.slug,
           name: p.name,
+          short_description: p.shortDescription ?? null,
           description: p.description ?? null,
           image_url: p.imageUrl ?? null,
           category: p.category,

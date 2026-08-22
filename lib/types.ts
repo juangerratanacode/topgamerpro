@@ -77,6 +77,10 @@ export interface Product {
   id: string;
   slug: string;
   name: string;
+  // Corta: se ve junto al producto, arriba de los paquetes (1-2 líneas).
+  shortDescription?: string;
+  // Larga: instrucciones detalladas de cómo funciona la recarga — se
+  // muestra en su propia sección debajo del botón de compra.
   description?: string;
   imageUrl?: string;
   category: string;

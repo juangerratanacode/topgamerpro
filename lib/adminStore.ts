@@ -56,6 +56,7 @@ export async function fetchProductsFromSupabase(): Promise<Product[] | null> {
       id: row.id,
       slug: row.slug,
       name: row.name,
+      shortDescription: row.short_description ?? undefined,
       description: row.description ?? undefined,
       imageUrl: row.image_url ?? undefined,
       category: row.category,
