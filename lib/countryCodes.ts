@@ -76,8 +76,15 @@ const NATIONAL_RULES_BY_DIAL: Record<string, { min: number; max: number; prefixe
 // Solo dígitos, con el largo real Y el prefijo de operadora móvil válido
 // para el país elegido (sin el dial code). Si el país no está en el mapa,
 // cae en el rango genérico anterior (7 a 12) como respaldo.
+// Saca ceros de marcado local al inicio (ej. "04121234567" -> "4121234567")
+// — el input ya los saca en cuanto se escriben, pero esto es un respaldo
+// para cualquier valor que llegue por otro camino (autocompletado, etc.).
+export function stripLeadingZero(value: string): string {
+  return value.replace(/^0+/, "");
+}
+
 export function isValidNationalNumber(value: string, dial?: string): boolean {
-  const cleaned = value.trim();
+  const cleaned = stripLeadingZero(value.trim());
   if (!/^[0-9]+$/.test(cleaned)) return false;
   const rules = dial ? NATIONAL_RULES_BY_DIAL[dial] : undefined;
   if (!rules) return cleaned.length >= 7 && cleaned.length <= 12;

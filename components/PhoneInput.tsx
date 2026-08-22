@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { COUNTRY_CODES, flagEmoji, isValidNationalNumber, nationalNumberLengthHint } from "@/lib/countryCodes";
+import {
+  COUNTRY_CODES,
+  flagEmoji,
+  isValidNationalNumber,
+  nationalNumberLengthHint,
+  stripLeadingZero,
+} from "@/lib/countryCodes";
 import clsx from "clsx";
 
 export interface PhoneValue {
@@ -14,7 +20,7 @@ export function isPhoneValid(value: PhoneValue): boolean {
 }
 
 export function formatPhoneE164(value: PhoneValue): string {
-  return `+${value.dial}${value.national.trim()}`;
+  return `+${value.dial}${stripLeadingZero(value.national.trim())}`;
 }
 
 export default function PhoneInput({
@@ -80,7 +86,15 @@ export default function PhoneInput({
           type="tel"
           inputMode="numeric"
           value={value.national}
-          onChange={(e) => onChange({ ...value, national: e.target.value.replace(/[^0-9]/g, "") })}
+          onChange={(e) =>
+            // El "0" inicial es solo un prefijo de marcado local (ej.
+            // "04121234567") — no forma parte del número real. Si se
+            // guardara tal cual, el número nacional quedaría con un dígito
+            // de más y el +58 terminaría duplicado con esa marca ("+580412...")
+            // en vez de formar el E.164 correcto. Se saca acá, apenas se
+            // escribe, para que nunca llegue a guardarse ni a validarse.
+            onChange({ ...value, national: e.target.value.replace(/[^0-9]/g, "").replace(/^0+/, "") })
+          }
           placeholder="4121234567"
           className="flex-1 min-w-0 bg-transparent px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none"
         />
