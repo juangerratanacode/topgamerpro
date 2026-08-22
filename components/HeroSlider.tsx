@@ -9,6 +9,43 @@ import { useBanners, type Banner } from "@/lib/bannersStore";
 const AUTOPLAY_MS = 6000;
 const SWIPE_THRESHOLD = 60;
 
+// El atributo HTML autoPlay no siempre alcanza en mobile: algunos
+// navegadores lo ignoran cuando el <video> lo inserta React en vez de
+// venir en el HTML inicial, y se queda mostrando el poster con el ícono de
+// play sin arrancar solo. Forzar .play() explícito desde JS (con muted
+// seteado también por propiedad, no solo atributo) es lo que efectivamente
+// hace que el autoplay funcione en esos casos. Si el navegador igual lo
+// bloquea (ej. Modo de Bajo Consumo de iOS, que desactiva el autoplay de
+// video a nivel sistema), .play() rechaza la promesa y no hay nada más que
+// hacer desde acá — se ignora en silencio en vez de mostrar un error.
+function HeroVideo({ src, poster }: { src: string; poster?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.muted = true;
+    const playPromise = el.play();
+    if (playPromise) playPromise.catch(() => {});
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      key={src}
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="metadata"
+      poster={poster || undefined}
+      className="absolute inset-0 w-full h-full object-cover object-center"
+    >
+      <source src={src} type="video/mp4" />
+    </video>
+  );
+}
+
 interface HeroSliderProps {
   banners?: Banner[];
   hydrated?: boolean;
@@ -87,18 +124,7 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
           >
             <motion.div style={{ y: parallaxY }} className="absolute -inset-x-0 -top-[10%] h-[120%]">
               {slide.videoUrl ? (
-                <video
-                  key={slide.videoUrl}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="metadata"
-                  poster={slide.imageUrl || undefined}
-                  className="absolute inset-0 w-full h-full object-cover object-center"
-                >
-                  <source src={slide.videoUrl} type="video/mp4" />
-                </video>
+                <HeroVideo src={slide.videoUrl} poster={slide.imageUrl} />
               ) : (
                 <Image
                   src={slide.imageUrl}

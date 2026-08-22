@@ -57,9 +57,16 @@ export default function ReviewsCarousel() {
           <motion.div
             key={r.name + i}
             data-review-card
+            // Antes esto era whileInView (dispara cada vez que la tarjeta
+            // entra al viewport) — en un carrusel horizontal, deslizar con
+            // el dedo hace que las tarjetas vayan "entrando" una por una,
+            // así que la animación de subida (y: 12 -> 0) se re-disparaba
+            // en cada swipe y se sentía como si el carrusel se moviera
+            // verticalmente en vez de horizontal (muy notorio en iPhone).
+            // Con initial/animate simple, la animación corre una sola vez
+            // al cargar la página y no vuelve a tocarse al deslizar.
             initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: (i % 6) * 0.05 }}
             className="snap-start shrink-0 w-[260px] sm:w-[280px] bg-brand-surface border border-brand-border rounded-2xl p-4 flex flex-col gap-2"
           >
