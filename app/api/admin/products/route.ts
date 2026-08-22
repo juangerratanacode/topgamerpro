@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
     genre: row.genre,
     requiresActivisionLink: row.requires_activision_link ?? undefined,
     requiresKonamiId: row.requires_konami_id ?? undefined,
+    relatedSlugs: row.related_slugs ?? [],
     fields: row.fields ?? [],
     variations: (row.product_variations ?? []).map((v: any) => ({
       id: v.id,
@@ -94,6 +95,7 @@ export async function PUT(req: NextRequest) {
           genre: p.genre,
           requires_activision_link: p.requiresActivisionLink ?? false,
           requires_konami_id: p.requiresKonamiId ?? false,
+          related_slugs: p.relatedSlugs ?? [],
           fields: p.fields ?? [],
           sort_order: index,
         },

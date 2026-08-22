@@ -63,6 +63,7 @@ export async function fetchProductsFromSupabase(): Promise<Product[] | null> {
       genre: row.genre,
       requiresActivisionLink: row.requires_activision_link ?? undefined,
       requiresKonamiId: row.requires_konami_id ?? undefined,
+      relatedSlugs: row.related_slugs ?? [],
       fields: row.fields ?? [],
       variations: (row.product_variations ?? []).map((v: any) => ({
         id: v.id,

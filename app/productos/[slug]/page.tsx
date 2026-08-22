@@ -2,12 +2,44 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import ProductDetailClient from "@/components/ProductDetailClient";
 import ProductReviews from "@/components/ProductReviews";
+import RelatedProducts from "@/components/RelatedProducts";
 import { supabase } from "@/lib/supabaseClient";
 import { mockProducts } from "@/lib/mockProducts";
 import { dedupeVariations } from "@/lib/productUtils";
 import type { Product } from "@/lib/types";
 
 export const revalidate = 0;
+
+function mapProductRow(row: any): Product {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    shortDescription: row.short_description ?? undefined,
+    description: row.description ?? undefined,
+    imageUrl: row.image_url ?? undefined,
+    category: row.category,
+    genre: row.genre,
+    requiresActivisionLink: row.requires_activision_link ?? undefined,
+    requiresKonamiId: row.requires_konami_id ?? undefined,
+    relatedSlugs: row.related_slugs ?? [],
+    fields: row.fields ?? [],
+    variations: dedupeVariations(
+      (row.product_variations ?? [])
+        .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((v: any) => ({
+          id: v.id,
+          label: v.label,
+          priceUsd: Number(v.price_usd),
+          priceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined,
+          icon: v.icon,
+          iconImageUrl: v.icon_image_url ?? undefined,
+          reloadlyProductId: v.reloadly_product_id ?? undefined,
+          fieldsOverride: v.fields_override ?? undefined,
+        }))
+    ),
+  };
+}
 
 async function getProductBySlugServer(slug: string): Promise<Product | undefined> {
   if (supabase) {
@@ -17,38 +49,26 @@ async function getProductBySlugServer(slug: string): Promise<Product | undefined
       .eq("slug", slug)
       .maybeSingle();
 
-    if (!error && row) {
-      return {
-        id: row.id,
-        slug: row.slug,
-        name: row.name,
-        shortDescription: row.short_description ?? undefined,
-        description: row.description ?? undefined,
-        imageUrl: row.image_url ?? undefined,
-        category: row.category,
-        genre: row.genre,
-        requiresActivisionLink: row.requires_activision_link ?? undefined,
-        requiresKonamiId: row.requires_konami_id ?? undefined,
-        fields: row.fields ?? [],
-        variations: dedupeVariations(
-          (row.product_variations ?? [])
-            .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-            .map((v: any) => ({
-              id: v.id,
-              label: v.label,
-              priceUsd: Number(v.price_usd),
-              priceUsdPaypal: v.price_usd_paypal != null ? Number(v.price_usd_paypal) : undefined,
-              icon: v.icon,
-              iconImageUrl: v.icon_image_url ?? undefined,
-              reloadlyProductId: v.reloadly_product_id ?? undefined,
-              fieldsOverride: v.fields_override ?? undefined,
-            }))
-        ),
-      };
-    }
+    if (!error && row) return mapProductRow(row);
   }
 
   return mockProducts.find((p) => p.slug === slug);
+}
+
+async function getRelatedProducts(slugs: string[]): Promise<Product[]> {
+  if (!supabase || slugs.length === 0) return [];
+
+  const { data: rows, error } = await supabase
+    .from("products")
+    .select("*, product_variations(*)")
+    .in("slug", slugs);
+
+  if (error || !rows) return [];
+
+  // .in() no respeta el orden que eligió el admin — se reordena acá para
+  // que coincida con el orden en que se marcaron los checkboxes.
+  const bySlug = new Map(rows.map((r) => [r.slug, mapProductRow(r)]));
+  return slugs.map((s) => bySlug.get(s)).filter((p): p is Product => !!p && p.variations.length > 0);
 }
 
 // SEO por producto: sin esto, todas las páginas de producto heredaban el
@@ -95,6 +115,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
     );
   }
 
+  const relatedProducts = await getRelatedProducts(product.relatedSlugs ?? []);
+
   return (
     <div className="relative">
       {/* Fondo a pantalla completa con el arte del propio juego, oscurecido y
@@ -123,6 +145,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <ProductDetailClient product={product} />
         <ProductReviews slug={product.slug} productName={product.name} />
+        <RelatedProducts products={relatedProducts} />
       </div>
     </div>
   );

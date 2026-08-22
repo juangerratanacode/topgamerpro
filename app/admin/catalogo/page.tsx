@@ -470,6 +470,41 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-semibold text-brand-textMuted mb-1">
+                      Productos relacionados (hasta 4 — se muestran al final de la página de este
+                      producto)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                      {products
+                        .filter((p) => p.id !== product.id)
+                        .map((p) => {
+                          const related = product.relatedSlugs ?? [];
+                          const checked = related.includes(p.slug);
+                          return (
+                            <label
+                              key={p.id}
+                              className="flex items-center gap-1.5 text-xs text-brand-textMuted bg-brand-surfaceLight border border-brand-border rounded px-2 py-1.5"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                disabled={!checked && related.length >= 4}
+                                onChange={(e) => {
+                                  const next = e.target.checked
+                                    ? [...related, p.slug]
+                                    : related.filter((s) => s !== p.slug);
+                                  updateProduct(product.id, { relatedSlugs: next });
+                                }}
+                                className="accent-brand-primary shrink-0"
+                              />
+                              <span className="truncate">{p.name}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => {
                       if (confirm(`¿Eliminar "${product.name}" del catálogo?`)) deleteProduct(product.id);

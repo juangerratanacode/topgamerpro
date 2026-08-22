@@ -89,6 +89,10 @@ export interface Product {
   fields: GameFieldDef[]; // campos por defecto para todos los paquetes de este producto
   requiresActivisionLink?: boolean;
   requiresKonamiId?: boolean;
+  // Slugs de otros productos elegidos a mano en el admin para mostrar en
+  // "Productos que te pueden interesar" al final de la página. No es
+  // automático (por categoría/género) — el admin decide la relación.
+  relatedSlugs?: string[];
 }
 
 export interface GameFieldValue {
