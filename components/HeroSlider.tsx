@@ -136,7 +136,7 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
                 />
               )}
             </motion.div>
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-bg via-brand-bg/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-bg/85 via-brand-bg/35 to-transparent" />
 
             <div className="absolute inset-0 flex items-center pb-10 sm:pb-8">
               <div className="px-6 sm:px-10 max-w-lg">
