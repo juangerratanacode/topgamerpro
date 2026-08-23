@@ -239,18 +239,26 @@ export async function POST(req: NextRequest) {
     totalConverted: finalTotalConverted ?? finalTotalUsd,
     createdAt: new Date(order.created_at ?? Date.now()),
   };
-  await sendOrderStatusEmail("recibido", emailParams);
-  await sendTelegramOrderNotification({
-    customer,
-    items: verifiedItems,
-    method: payment.method,
-    reference: payment.reference,
-    orderId: order.id,
-    totalUsd: finalTotalUsd,
-    currency,
-    totalConverted: finalTotalConverted ?? finalTotalUsd,
-    receiptUrl,
-  });
+  // En paralelo en vez de uno tras otro: cada llamada es una petición de
+  // red independiente (Resend, Telegram), así que esperarlas secuencialmente
+  // sumaba sus tiempos completos al checkout del cliente. En paralelo, el
+  // tiempo total es el de la más lenta de las dos, no la suma — sin
+  // arriesgar perder ningún aviso (se sigue esperando a que ambas
+  // terminen antes de responder).
+  await Promise.all([
+    sendOrderStatusEmail("recibido", emailParams),
+    sendTelegramOrderNotification({
+      customer,
+      items: verifiedItems,
+      method: payment.method,
+      reference: payment.reference,
+      orderId: order.id,
+      totalUsd: finalTotalUsd,
+      currency,
+      totalConverted: finalTotalConverted ?? finalTotalUsd,
+      receiptUrl,
+    }),
+  ]);
 
   return NextResponse.json({ orderId: order.id, status: order.status, receiptUrl, receiptShortUrl });
 }
