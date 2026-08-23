@@ -8,9 +8,11 @@ import HowToRechargeModal from "./HowToRechargeModal";
 // a /como-recargar, que sigue existiendo como página de contenido/SEO pero
 // ya no es a donde lleva este botón).
 //
-// En mobile es un círculo chico (solo ícono) en vez de la píldora con
-// texto: así ocupa el mínimo posible sobre el contenido que tiene detrás
-// mientras el usuario scrollea (ej. las tarjetas de /como-recargar).
+// Antes en mobile era un círculo chico (solo ícono) para ocupar el mínimo
+// posible sobre el contenido mientras se scrollea — pero sin texto no
+// quedaba claro qué hacía el botón. Ahora es una píldora con ícono + texto
+// en todos los tamaños; en mobile el texto es más corto ("Cómo Recargar")
+// para no ocupar tanto ancho.
 export default function FloatingHelpButton() {
   const [open, setOpen] = useState(false);
 
@@ -25,12 +27,13 @@ export default function FloatingHelpButton() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Aprende a recargar"
-          className="flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primaryDark text-white font-semibold text-sm rounded-full shadow-glow transition-colors w-12 h-12 sm:w-auto sm:h-auto sm:pl-3 sm:pr-4 sm:py-3"
+          className="flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primaryDark text-white font-semibold text-sm rounded-full shadow-glow transition-colors pl-3 pr-4 py-3"
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="9" />
             <path d="M10 8.5l5 3.5-5 3.5v-7z" fill="currentColor" stroke="none" />
           </svg>
+          <span className="sm:hidden">Cómo Recargar</span>
           <span className="hidden sm:inline">Aprende a recargar</span>
         </button>
       </motion.div>

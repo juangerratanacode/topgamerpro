@@ -7,6 +7,15 @@ import { usePathname } from "next/navigation";
 // usa para detectar navegación "interna" dentro de un mismo panel con
 // layout persistente (mi-cuenta, admin) — ahí el usuario espera que el
 // contenido cambie en el lugar, sin que la página salte a arriba de todo.
+//
+// Ojo: esto es una lista explícita, no "cualquier segmento compartido".
+// Antes comparaba el primer segmento tal cual, y como /productos/[slug] no
+// tiene layout persistente (cada producto es una página distinta, sin
+// sidebar ni nada que se quede montado), pasar de /productos/cod a
+// /productos/efootball también contaba como "mismo panel" y se saltaba el
+// scroll-to-top — el usuario abría el producto nuevo a mitad de página.
+const PERSISTENT_LAYOUT_SEGMENTS = new Set(["admin", "mi-cuenta"]);
+
 function topSegment(pathname: string): string {
   return pathname.split("/").filter(Boolean)[0] ?? "";
 }
@@ -37,8 +46,10 @@ export default function ScrollMemory() {
   }, []);
 
   useEffect(() => {
+    const prevTop = prevPathname.current !== null ? topSegment(prevPathname.current) : null;
+    const currentTop = topSegment(pathname);
     const isInternalTabSwitch =
-      prevPathname.current !== null && topSegment(prevPathname.current) === topSegment(pathname);
+      prevTop !== null && prevTop === currentTop && PERSISTENT_LAYOUT_SEGMENTS.has(currentTop);
     prevPathname.current = pathname;
 
     // Cambiar de "pestaña" dentro del mismo panel (ej. mi-cuenta/pedidos ->

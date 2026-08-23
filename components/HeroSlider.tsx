@@ -136,11 +136,15 @@ export default function HeroSlider({ banners: bannersProp, hydrated: hydratedPro
                 />
               )}
             </motion.div>
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-bg via-brand-bg/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-bg/85 via-brand-bg/35 to-transparent" />
 
             <div className="absolute inset-0 flex items-center pb-10 sm:pb-8">
               <div className="px-6 sm:px-10 max-w-lg">
-                <h2 className="text-2xl sm:text-4xl font-black text-white leading-tight drop-shadow">
+                <h2
+                  className="text-2xl sm:text-4xl font-black leading-tight
+                    bg-gradient-to-r from-brand-primary via-white to-brand-gold bg-clip-text text-transparent
+                    drop-shadow-[0_0_18px_rgba(14,165,233,0.35)]"
+                >
                   {slide.title.split(" ").map((word, i) => (
                     <span key={i} className="inline-block overflow-hidden align-bottom mr-[0.28em] pb-1 -mb-1">
                       <motion.span

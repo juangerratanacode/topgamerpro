@@ -1,9 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
-const TITLE = "Recarga tus juegos favoritos con total confianza";
-
 const TRUST_ITEMS = [
   {
     label: "4.8/5 en +500 recargas",
@@ -15,22 +11,22 @@ const TRUST_ITEMS = [
     ),
   },
   {
-    label: "Entrega en minutos",
-    hint: "No en horas ni en días",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-brand-primary" fill="none" strokeWidth="2">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "Pago Móvil verificado automáticamente",
+    label: "Pago Móvil verificado en minutos",
     hint: "Sin esperas, confirmación al instante",
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-brand-green" fill="none" strokeWidth="2">
         <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx="12" cy="12" r="9" />
+      </svg>
+    ),
+  },
+  {
+    label: "Entrega en minutos",
+    hint: undefined as string | undefined,
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-brand-primary" fill="none" strokeWidth="2">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -42,26 +38,6 @@ const TRUST_ITEMS = [
 export default function TrustSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <h2
-        className="text-center text-base sm:text-lg font-black uppercase tracking-wide mb-4 sm:mb-5
-          bg-gradient-to-r from-brand-primary via-white to-brand-gold bg-clip-text text-transparent
-          drop-shadow-[0_0_18px_rgba(14,165,233,0.35)]"
-      >
-        {TITLE.split(" ").map((word, i) => (
-          <span key={i} className="inline-block align-bottom mr-[0.28em] pb-1 -mb-1">
-            <motion.span
-              className="inline-block"
-              initial={{ y: 25, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: i * 0.07, ease: "easeOut" }}
-            >
-              {word}
-            </motion.span>
-          </span>
-        ))}
-      </h2>
-
       <div className="flex flex-nowrap sm:flex-wrap sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0 scrollbar-none snap-x snap-mandatory sm:snap-none">
         {TRUST_ITEMS.map((item) => (
           <div
@@ -73,7 +49,7 @@ export default function TrustSection() {
             </span>
             <div className="min-w-0">
               <div className="text-sm font-semibold text-white leading-tight">{item.label}</div>
-              <div className="text-[11px] text-brand-textMuted leading-tight">{item.hint}</div>
+              {item.hint && <div className="text-[11px] text-brand-textMuted leading-tight">{item.hint}</div>}
             </div>
           </div>
         ))}
