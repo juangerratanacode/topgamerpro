@@ -15,22 +15,22 @@ const TRUST_ITEMS = [
     ),
   },
   {
-    label: "Entrega en minutos",
-    hint: "No en horas ni en días",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-brand-primary" fill="none" strokeWidth="2">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "Pago Móvil verificado automáticamente",
+    label: "Pago Móvil verificado en minutos",
     hint: "Sin esperas, confirmación al instante",
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-brand-green" fill="none" strokeWidth="2">
         <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx="12" cy="12" r="9" />
+      </svg>
+    ),
+  },
+  {
+    label: "Entrega en minutos",
+    hint: undefined as string | undefined,
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-brand-primary" fill="none" strokeWidth="2">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -73,7 +73,7 @@ export default function TrustSection() {
             </span>
             <div className="min-w-0">
               <div className="text-sm font-semibold text-white leading-tight">{item.label}</div>
-              <div className="text-[11px] text-brand-textMuted leading-tight">{item.hint}</div>
+              {item.hint && <div className="text-[11px] text-brand-textMuted leading-tight">{item.hint}</div>}
             </div>
           </div>
         ))}
