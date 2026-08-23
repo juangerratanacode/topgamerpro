@@ -16,6 +16,14 @@ import { usePathname } from "next/navigation";
 // scroll-to-top — el usuario abría el producto nuevo a mitad de página.
 const PERSISTENT_LAYOUT_SEGMENTS = new Set(["admin", "mi-cuenta"]);
 
+// Rutas donde SIEMPRE se arranca arriba de todo, sin importar si el
+// usuario ya había visitado esa misma URL antes en esta sesión. La memoria
+// de scroll (de acá abajo) existe para que un "atrás" en el catálogo te
+// devuelva donde estabas — pero en una página de producto no tiene sentido
+// "recordar" el scroll: cada vez que entrás a un producto (aunque sea el
+// mismo de antes) esperás verlo desde arriba, no a mitad de la página.
+const ALWAYS_TOP_SEGMENTS = new Set(["productos"]);
+
 function topSegment(pathname: string): string {
   return pathname.split("/").filter(Boolean)[0] ?? "";
 }
@@ -58,7 +66,7 @@ export default function ScrollMemory() {
     if (isInternalTabSwitch) return;
 
     const key = `scrollpos:${pathname}`;
-    const saved = sessionStorage.getItem(key);
+    const saved = ALWAYS_TOP_SEGMENTS.has(currentTop) ? null : sessionStorage.getItem(key);
 
     if (!saved) {
       window.scrollTo(0, 0);
