@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import HowToRechargeModal from "./HowToRechargeModal";
 
@@ -15,6 +16,11 @@ import HowToRechargeModal from "./HowToRechargeModal";
 // para no ocupar tanto ancho.
 export default function FloatingHelpButton() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Es para clientes de la tienda — dentro del panel de admin tapaba
+  // botones reales (ej. "Guardar cambios" en /staffgate7d3k/catalogo).
+  if (pathname?.startsWith("/staffgate7d3k")) return null;
 
   return (
     <>
