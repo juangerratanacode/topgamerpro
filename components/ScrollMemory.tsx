@@ -14,7 +14,7 @@ import { usePathname } from "next/navigation";
 // sidebar ni nada que se quede montado), pasar de /productos/cod a
 // /productos/efootball también contaba como "mismo panel" y se saltaba el
 // scroll-to-top — el usuario abría el producto nuevo a mitad de página.
-const PERSISTENT_LAYOUT_SEGMENTS = new Set(["admin", "mi-cuenta"]);
+const PERSISTENT_LAYOUT_SEGMENTS = new Set(["staffgate7d3k", "mi-cuenta"]);
 
 // Rutas donde SIEMPRE se arranca arriba de todo, sin importar si el
 // usuario ya había visitado esa misma URL antes en esta sesión. La memoria

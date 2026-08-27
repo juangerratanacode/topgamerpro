@@ -117,13 +117,13 @@ export default function AdminDashboard() {
           label="Pedidos pendientes"
           value={<AnimatedCounter value={stats.pendingCount} />}
           accent="from-brand-gold to-brand-green"
-          href="/admin/pedidos"
+          href="/staffgate7d3k/pedidos"
         />
         <StatCard
           label="Clientes únicos"
           value={<AnimatedCounter value={stats.customerCount} />}
           accent="from-brand-green to-brand-primary"
-          href="/admin/clientes"
+          href="/staffgate7d3k/clientes"
         />
       </motion.div>
 
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-sm">Pedidos recientes</h2>
-            <Link href="/admin/pedidos" className="text-xs text-brand-primary font-semibold hover:underline">
+            <Link href="/staffgate7d3k/pedidos" className="text-xs text-brand-primary font-semibold hover:underline">
               Ver todos →
             </Link>
           </div>

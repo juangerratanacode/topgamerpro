@@ -1,0 +1,14 @@
+{
+  "name": "TopGamerPro Admin",
+  "short_name": "TGP Admin",
+  "description": "Panel de administración de TopGamerPro.",
+  "start_url": "/staffgate7d3k",
+  "display": "standalone",
+  "background_color": "#05060F",
+  "theme_color": "#05060F",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

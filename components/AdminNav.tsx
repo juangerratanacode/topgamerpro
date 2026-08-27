@@ -6,14 +6,14 @@ import clsx from "clsx";
 import { supabase } from "@/lib/supabaseClient";
 
 const TABS = [
-  { href: "/admin", label: "Resumen" },
-  { href: "/admin/catalogo", label: "Catálogo" },
-  { href: "/admin/banners", label: "Portadas" },
-  { href: "/admin/pedidos", label: "Pedidos" },
-  { href: "/admin/clientes", label: "Clientes" },
-  { href: "/admin/usuarios", label: "Usuarios" },
-  { href: "/admin/comentarios", label: "Comentarios" },
-  { href: "/admin/pagos", label: "Métodos de Pago" },
+  { href: "/staffgate7d3k", label: "Resumen" },
+  { href: "/staffgate7d3k/catalogo", label: "Catálogo" },
+  { href: "/staffgate7d3k/banners", label: "Portadas" },
+  { href: "/staffgate7d3k/pedidos", label: "Pedidos" },
+  { href: "/staffgate7d3k/clientes", label: "Clientes" },
+  { href: "/staffgate7d3k/usuarios", label: "Usuarios" },
+  { href: "/staffgate7d3k/comentarios", label: "Comentarios" },
+  { href: "/staffgate7d3k/pagos", label: "Métodos de Pago" },
 ];
 
 export default function AdminNav() {
@@ -22,7 +22,7 @@ export default function AdminNav() {
 
   async function handleLogout() {
     if (supabase) await supabase.auth.signOut();
-    router.push("/admin/login");
+    router.push("/staffgate7d3k/login");
   }
 
   return (
