@@ -101,7 +101,7 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
     setSubmitting(true);
     setError(null);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: typeof window !== "undefined" ? `${window.location.origin}/mi-cuenta` : undefined,
+      redirectTo: typeof window !== "undefined" ? `${window.location.origin}/mi-cuenta/seguridad` : undefined,
     });
     setSubmitting(false);
     if (error) {
