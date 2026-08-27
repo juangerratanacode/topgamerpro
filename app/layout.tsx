@@ -39,8 +39,16 @@ export const metadata: Metadata = {
     type: "website",
   },
   // app/icon.png y app/apple-icon.png ya se detectan solos por convención
-  // de Next (App Router) — no hace falta declararlos acá. El manifest
-  // (app/manifest.ts) también se enlaza solo.
+  // de Next (App Router) — no hace falta declararlos acá.
+  //
+  // El manifest SÍ hay que declararlo a mano acá (en vez de usar el
+  // archivo especial app/manifest.ts): cuando existe ese archivo, Next lo
+  // usa para TODAS las páginas sin excepción, ignorando cualquier
+  // `metadata.manifest` que se declare en un layout más específico — así
+  // era imposible que /staffgate7d3k tuviera su propio manifest de admin.
+  // Con esto como string explícito, un layout hijo (ver
+  // app/staffgate7d3k/layout.tsx) sí puede pisarlo para su sección.
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     title: "TopGamerPro",
     statusBarStyle: "black-translucent",
