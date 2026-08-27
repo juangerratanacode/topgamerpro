@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCurrency, CURRENCY_META } from "@/lib/currencyStore";
+import { usePaymentSettings } from "@/lib/paymentSettingsStore";
 import type { Currency } from "@/lib/types";
 import clsx from "clsx";
 
@@ -31,7 +32,25 @@ function CurrencyIcon({ c, className }: { c: Currency; className?: string }) {
 
 export default function CurrencySwitcher() {
   const { display, setDisplay } = useCurrency();
+  const { settings: paymentSettings } = usePaymentSettings();
   const [open, setOpen] = useState(false);
+
+  // "PayPal" acá es una moneda de VISUALIZACIÓN (precios con la comisión
+  // de PayPal ya sumada) — no tiene sentido ofrecerla si el método de pago
+  // PayPal está apagado desde /staffgate7d3k/pagos, porque ese precio
+  // nunca se podría cobrar por ese canal. VES y USD se quedan siempre:
+  // pueden pagarse por más de un método (ej. USD sirve tanto para Binance
+  // como PayPal), así que apagar uno solo no los deja sin sentido.
+  const currencies = (Object.keys(CURRENCY_META) as Currency[]).filter(
+    (c) => c !== "PAYPAL" || paymentSettings.paypal.enabled
+  );
+
+  // Si el cliente ya tenía "PayPal" elegido como moneda y el admin lo
+  // apaga mientras tanto, lo movemos a USD en vez de dejarlo en una
+  // moneda que ya no aparece en la lista.
+  useEffect(() => {
+    if (display === "PAYPAL" && !paymentSettings.paypal.enabled) setDisplay("USD");
+  }, [display, paymentSettings.paypal.enabled, setDisplay]);
 
   return (
     <div className="relative">
@@ -50,7 +69,7 @@ export default function CurrencySwitcher() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 mt-2 w-44 bg-brand-surface border border-brand-border rounded-xl overflow-hidden shadow-xl z-50">
-            {(Object.keys(CURRENCY_META) as Currency[]).map((c) => (
+            {currencies.map((c) => (
               <button
                 key={c}
                 onClick={() => {
