@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Poppins } from "next/font/google";
 import "./globals.css";
@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollMemory from "@/components/ScrollMemory";
 import FloatingHelpButton from "@/components/FloatingHelpButton";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { CartProvider } from "@/lib/cartStore";
 import { CurrencyProvider } from "@/lib/currencyStore";
 import { AuthProvider } from "@/lib/authStore";
@@ -37,6 +38,20 @@ export const metadata: Metadata = {
     locale: "es_VE",
     type: "website",
   },
+  // app/icon.png y app/apple-icon.png ya se detectan solos por convención
+  // de Next (App Router) — no hace falta declararlos acá. El manifest
+  // (app/manifest.ts) también se enlaza solo.
+  appleWebApp: {
+    title: "TopGamerPro",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+// themeColor/colorScheme viven en un export separado de metadata desde
+// Next 14 (antes daban un warning de deprecación si iban dentro de
+// metadata).
+export const viewport: Viewport = {
+  themeColor: "#05060F",
 };
 
 export default function RootLayout({
@@ -57,6 +72,7 @@ export default function RootLayout({
               <main className="flex-1">{children}</main>
               <Footer />
               <FloatingHelpButton />
+              <ServiceWorkerRegister />
             </CartProvider>
           </CurrencyProvider>
         </AuthProvider>
