@@ -19,13 +19,37 @@ export default function AdminLoginPage() {
     }
     setLoading(true);
     setError(null);
+
+    // Antes de intentar, preguntamos si este correo ya gastó sus intentos
+    // fallidos recientes — evita fuerza bruta (probar contraseñas una tras
+    // otra) sin depender de nada del lado del cliente, que se puede
+    // saltear con solo llamar signInWithPassword directo.
+    const guardRes = await fetch("/api/admin/login-guard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const guard = await guardRes.json().catch(() => ({ blocked: false }));
+    if (guard.blocked) {
+      setLoading(false);
+      setError(
+        `Demasiados intentos fallidos. Esperá ${guard.windowMinutes ?? 15} minutos antes de volver a intentar.`
+      );
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
+      fetch("/api/admin/login-attempt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
       setError("Correo o contraseña incorrectos.");
       return;
     }
-    router.push("/admin");
+    router.push("/staffgate7d3k");
     router.refresh();
   }
 
