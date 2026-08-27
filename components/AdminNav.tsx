@@ -28,7 +28,12 @@ export default function AdminNav() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
       <div className="flex items-center justify-between gap-1 border-b border-brand-border">
-        <div className="flex gap-1 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto" style={{ touchAction: "pan-x" }}>
+          {/* touchAction: pan-x — sin esto, un swipe que no es 100%
+              horizontal podía resolverse como scroll vertical de toda la
+              página en vez de mover esta fila de pestañas, que es angosta
+              y queda arriba de todo (más propensa a que el dedo se desvíe
+              un poco al deslizar). */}
           {TABS.map((tab) => {
             const active = pathname === tab.href;
             return (
