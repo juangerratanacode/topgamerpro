@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useCart } from "@/lib/cartStore";
-import { usePaymentSettings } from "@/lib/paymentSettingsStore";
+import { usePaymentSettings, type PaymentSettings } from "@/lib/paymentSettingsStore";
 import { getCartTotalForMethod, getCartItemIcon } from "@/lib/pricing";
 import { useStorefrontProducts } from "@/lib/adminStore";
 import { validatePaymentReference } from "@/lib/validation";
@@ -36,6 +36,12 @@ function methodsForDisplayCurrency(display: Currency): PaymentMethodId[] {
   return ["binance", "paypal"];
 }
 
+const SETTINGS_KEY_BY_METHOD: Record<PaymentMethodId, keyof PaymentSettings> = {
+  pago_movil_manual: "pagoMovil",
+  paypal: "paypal",
+  binance: "binance",
+};
+
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export default function CheckoutForm() {
@@ -59,16 +65,21 @@ export default function CheckoutForm() {
   // Los métodos disponibles dependen de la moneda que el cliente eligió en
   // el switcher del header: en Bs. solo Pago Móvil, en USD/COP Binance o
   // PayPal — así el cliente nunca ve un método que no aplica a su moneda.
-  const availableMethods = methodsForDisplayCurrency(display);
+  // Además se filtran los que el admin desactivó desde /staffgate7d3k/pagos.
+  const availableMethods = methodsForDisplayCurrency(display).filter(
+    (m) => paymentSettings[SETTINGS_KEY_BY_METHOD[m]].enabled
+  );
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [method, setMethod] = useState<PaymentMethodId>(availableMethods[0]);
+  const [method, setMethod] = useState<PaymentMethodId>(
+    availableMethods[0] ?? methodsForDisplayCurrency(display)[0]
+  );
 
   // Si el cliente cambia de moneda (ej. de Bs. a USD) mientras está en el
   // checkout, el método activo puede dejar de ser válido — lo reajustamos
   // al primero disponible para esa moneda.
   useEffect(() => {
-    if (!availableMethods.includes(method)) setMethod(availableMethods[0]);
+    if (availableMethods.length > 0 && !availableMethods.includes(method)) setMethod(availableMethods[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [display]);
   const [firstName, setFirstName] = useState("");
@@ -140,6 +151,7 @@ export default function CheckoutForm() {
   // botón, no solo al hacer click.
   const canSubmit =
     step1Valid &&
+    availableMethods.length > 0 &&
     reference.trim().length > 0 &&
     !validatePaymentReference(method, reference) &&
     (!receiptRequired || receiptFile !== null) &&
@@ -325,26 +337,33 @@ export default function CheckoutForm() {
               </button>
             </div>
 
-            <div className={clsx("grid gap-2", availableMethods.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
-              {availableMethods.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => {
-                    setMethod(m);
-                    setPaypalOpened(false);
-                  }}
-                  className={clsx(
-                    "border-2 rounded-xl py-3 text-sm font-semibold transition-colors text-center",
-                    method === m
-                      ? "border-brand-primary bg-brand-primary/10 text-white"
-                      : "border-brand-border bg-brand-surfaceLight text-brand-textMuted hover:border-brand-textMuted"
-                  )}
-                >
-                  <div>{METHOD_META[m].label}</div>
-                  <div className="text-[10px] font-normal opacity-70">{METHOD_META[m].hint}</div>
-                </button>
-              ))}
-            </div>
+            {availableMethods.length === 0 ? (
+              <p className="text-sm text-brand-textMuted bg-brand-surfaceLight border border-brand-border rounded-xl p-4">
+                No hay métodos de pago disponibles en esta moneda por ahora. Probá cambiando de
+                moneda arriba, o escribinos por WhatsApp.
+              </p>
+            ) : (
+              <div className={clsx("grid gap-2", availableMethods.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                {availableMethods.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setMethod(m);
+                      setPaypalOpened(false);
+                    }}
+                    className={clsx(
+                      "border-2 rounded-xl py-3 text-sm font-semibold transition-colors text-center",
+                      method === m
+                        ? "border-brand-primary bg-brand-primary/10 text-white"
+                        : "border-brand-border bg-brand-surfaceLight text-brand-textMuted hover:border-brand-textMuted"
+                    )}
+                  >
+                    <div>{METHOD_META[m].label}</div>
+                    <div className="text-[10px] font-normal opacity-70">{METHOD_META[m].hint}</div>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {user && maxPoints >= POINTS_REDEMPTION_STEP && (
               <div className="bg-brand-surfaceLight border border-brand-border rounded-xl p-4">

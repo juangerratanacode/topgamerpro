@@ -17,6 +17,15 @@ function PaypalIcon({ className }: { className?: string }) {
 
 function CurrencyIcon({ c, className }: { c: Currency; className?: string }) {
   if (c === "PAYPAL") return <PaypalIcon className={className ?? "w-4 h-4 text-[#0070BA]"} />;
+  // El dólar acá es específicamente "Dólar (USDT)" — en Venezuela eso casi
+  // siempre significa Binance, así que el ícono de marca comunica mejor
+  // que la bandera genérica de EE.UU.
+  if (c === "USD") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/binance-icon.png" alt="" className={className ?? "w-4 h-4"} />
+    );
+  }
   return <span>{CURRENCY_META[c].flag}</span>;
 }
 

@@ -8,15 +8,15 @@ import { useCallback, useEffect, useState } from "react";
 import { adminFetch } from "./adminFetch";
 
 export interface PaymentSettings {
-  pagoMovil: { banco: string; telefono: string; cedula: string };
-  paypal: { correo: string; paypalMeUser: string };
-  binance: { correoOId: string; nombre: string };
+  pagoMovil: { banco: string; telefono: string; cedula: string; enabled: boolean };
+  paypal: { correo: string; paypalMeUser: string; enabled: boolean };
+  binance: { correoOId: string; nombre: string; enabled: boolean };
 }
 
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
-  pagoMovil: { banco: "Banesco (0134)", telefono: "0412-3542332", cedula: "V-27894619" },
-  paypal: { correo: "pagos@novatop.com", paypalMeUser: "novatoprecargas" },
-  binance: { correoOId: "", nombre: "" },
+  pagoMovil: { banco: "Banesco (0134)", telefono: "0412-3542332", cedula: "V-27894619", enabled: true },
+  paypal: { correo: "pagos@novatop.com", paypalMeUser: "novatoprecargas", enabled: true },
+  binance: { correoOId: "", nombre: "", enabled: true },
 };
 
 async function fetchSettings(): Promise<PaymentSettings> {

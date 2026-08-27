@@ -5,9 +5,9 @@ import { requireAdmin } from "@/lib/adminAuth";
 export const dynamic = "force-dynamic";
 
 export interface PaymentSettings {
-  pagoMovil: { banco: string; telefono: string; cedula: string };
-  paypal: { correo: string; paypalMeUser: string };
-  binance: { correoOId: string; nombre: string };
+  pagoMovil: { banco: string; telefono: string; cedula: string; enabled: boolean };
+  paypal: { correo: string; paypalMeUser: string; enabled: boolean };
+  binance: { correoOId: string; nombre: string; enabled: boolean };
 }
 
 export async function GET() {
@@ -16,15 +16,29 @@ export async function GET() {
   const { data, error } = await supabaseAdmin.from("payment_settings").select("*").eq("id", 1).single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // "enabled" es un campo nuevo — cualquier fila guardada antes de que
+  // existiera no lo tiene, y de no default-earlo a true, un método ya
+  // configurado y funcionando desaparecería del checkout con el próximo
+  // deploy sin que el admin tocara nada.
   const settings: PaymentSettings = {
-    pagoMovil: data.pago_movil,
-    paypal: data.paypal,
+    pagoMovil: {
+      banco: data.pago_movil?.banco ?? "",
+      telefono: data.pago_movil?.telefono ?? "",
+      cedula: data.pago_movil?.cedula ?? "",
+      enabled: data.pago_movil?.enabled ?? true,
+    },
+    paypal: {
+      correo: data.paypal?.correo ?? "",
+      paypalMeUser: data.paypal?.paypalMeUser ?? "",
+      enabled: data.paypal?.enabled ?? true,
+    },
     // El registro puede traer la forma vieja ({ cuenta }) de antes de que
     // se agregaran estos campos — normalizamos acá para que nunca lleguen
     // "undefined" al checkout si el admin todavía no guardó nada nuevo.
     binance: {
       correoOId: data.binance?.correoOId ?? "",
       nombre: data.binance?.nombre ?? "",
+      enabled: data.binance?.enabled ?? true,
     },
   };
 
