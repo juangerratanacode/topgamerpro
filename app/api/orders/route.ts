@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { sendOrderStatusEmail } from "@/lib/orderEmail";
@@ -226,9 +227,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // El pedido ya quedó guardado — el correo es un extra sobre la
-  // confirmación por WhatsApp, así que un fallo acá no debe tumbar la
-  // respuesta ni hacer que el cliente vea un error de checkout.
+  // El pedido ya quedó guardado — el correo y el aviso de Telegram son un
+  // extra sobre la confirmación por WhatsApp, así que un fallo acá no debe
+  // tumbar la respuesta ni hacer que el cliente vea un error de checkout.
+  //
+  // Antes esto se esperaba (await) ANTES de responder — el checkout abre
+  // una pestaña en blanco que recién redirige a WhatsApp cuando esta
+  // respuesta llega, así que cada segundo que tardaban Resend/Telegram en
+  // contestar era un segundo de pantalla en blanco para el cliente en su
+  // celular. waitUntil() le dice a Vercel "seguí corriendo esto en
+  // segundo plano" sin bloquear la respuesta — el cliente ve WhatsApp casi
+  // al instante, y el correo/aviso igual se terminan de mandar.
   const emailParams = {
     customer,
     items: verifiedItems,
@@ -239,26 +248,22 @@ export async function POST(req: NextRequest) {
     totalConverted: finalTotalConverted ?? finalTotalUsd,
     createdAt: new Date(order.created_at ?? Date.now()),
   };
-  // En paralelo en vez de uno tras otro: cada llamada es una petición de
-  // red independiente (Resend, Telegram), así que esperarlas secuencialmente
-  // sumaba sus tiempos completos al checkout del cliente. En paralelo, el
-  // tiempo total es el de la más lenta de las dos, no la suma — sin
-  // arriesgar perder ningún aviso (se sigue esperando a que ambas
-  // terminen antes de responder).
-  await Promise.all([
-    sendOrderStatusEmail("recibido", emailParams),
-    sendTelegramOrderNotification({
-      customer,
-      items: verifiedItems,
-      method: payment.method,
-      reference: payment.reference,
-      orderId: order.id,
-      totalUsd: finalTotalUsd,
-      currency,
-      totalConverted: finalTotalConverted ?? finalTotalUsd,
-      receiptUrl,
-    }),
-  ]);
+  waitUntil(
+    Promise.all([
+      sendOrderStatusEmail("recibido", emailParams),
+      sendTelegramOrderNotification({
+        customer,
+        items: verifiedItems,
+        method: payment.method,
+        reference: payment.reference,
+        orderId: order.id,
+        totalUsd: finalTotalUsd,
+        currency,
+        totalConverted: finalTotalConverted ?? finalTotalUsd,
+        receiptUrl,
+      }),
+    ])
+  );
 
   return NextResponse.json({ orderId: order.id, status: order.status, receiptUrl, receiptShortUrl });
 }
