@@ -176,9 +176,18 @@ export default function CheckoutForm() {
     // (sobre todo en mobile) solo permiten window.open() sin bloqueo si
     // pasa de forma síncrona dentro del gesto de click. Si se llama después
     // de un fetch/await, ya "perdió" ese permiso y el popup se bloquea sin
-    // avisar. Abrimos en blanco y recién le seteamos la URL real cuando el
-    // mensaje de WhatsApp está listo.
-    const waWindow = window.open("about:blank", "_blank");
+    // avisar. Recién le seteamos la URL real de WhatsApp cuando el mensaje
+    // está listo.
+    //
+    // Antes esto abría "about:blank" — mientras se sube la foto del
+    // comprobante y se crea el pedido (lo más lento del checkout, sobre
+    // todo con mala señal), el cliente se queda mirando ESTA pestaña
+    // nueva (el navegador le da foco a ella, no a la de checkout que sí
+    // tiene su "Procesando..."), y una pantalla en blanco sin nada da la
+    // sensación de que se rompió algo. redirigiendo.html es una página
+    // mínima con spinner + texto para que quede claro que se está
+    // procesando en vez de parecer un error.
+    const waWindow = window.open("/redirigiendo.html", "_blank");
 
     setSubmitting(true);
     try {
