@@ -16,6 +16,22 @@ import StarRating from "./StarRating";
 import { useReviewStats } from "@/lib/useReviewStats";
 import clsx from "clsx";
 
+// El texto de la descripción larga a veces viene con saltos de línea a
+// mitad de oración (copiado de una fuente pensada para otro ancho de
+// columna) — se ve cortado de forma rara. No podemos aplastar TODOS los
+// saltos de línea porque el admin sí puede querer párrafos separados a
+// propósito (ej. pasos numerados). La regla: una línea en blanco entre
+// dos bloques de texto es un salto de párrafo real y se respeta; un
+// salto de línea suelto dentro de un mismo bloque es un simple ajuste de
+// ancho y se convierte en espacio.
+function normalizeParagraphs(text: string): string {
+  return text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s*\n\s*/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation>(product.variations[0]);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
@@ -290,8 +306,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line px-4 pb-4">
-                    {product.description}
+                  <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line text-justify px-4 pb-4">
+                    {normalizeParagraphs(product.description)}
                   </p>
                 </motion.div>
               )}
