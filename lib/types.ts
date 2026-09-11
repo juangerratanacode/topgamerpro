@@ -93,6 +93,13 @@ export interface Product {
   // "Productos que te pueden interesar" al final de la página. No es
   // automático (por categoría/género) — el admin decide la relación.
   relatedSlugs?: string[];
+  // Algunos juegos (ej. eFootball) recargan distinto según el dispositivo
+  // de la cuenta — el precio es el mismo, es solo un dato operativo para
+  // saber cómo procesar la recarga. Opciones fijas (Android/iPhone), no
+  // configurables una por una como los "campos" genéricos, porque cada
+  // una necesita su propio ícono subido.
+  requiresDeviceSelection?: boolean;
+  deviceIcons?: { android?: string; iphone?: string };
 }
 
 export interface GameFieldValue {

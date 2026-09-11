@@ -13,6 +13,7 @@ import { validateGameFields } from "@/lib/validation";
 import GameSpecialNotice from "./GameSpecialNotice";
 import PackageIconDisplay from "./PackageIconDisplay";
 import PasswordInput from "./PasswordInput";
+import DeviceIcon from "./DeviceIcon";
 import StarRating from "./StarRating";
 import { useReviewStats } from "@/lib/useReviewStats";
 import clsx from "clsx";
@@ -37,6 +38,11 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation>(product.variations[0]);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [descriptionOpen, setDescriptionOpen] = useState(true);
+  // Solo aplica a productos con requiresDeviceSelection (ej. eFootball) —
+  // el precio no cambia según el dispositivo, es un dato operativo más
+  // que viaja junto a los demás "campos del juego" del pedido.
+  const [selectedDevice, setSelectedDevice] = useState<"android" | "iphone" | null>(null);
+  const needsDevice = !!product.requiresDeviceSelection;
   const { addItem } = useCart();
   const { display, format } = useCurrency();
   const router = useRouter();
@@ -57,10 +63,21 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   }
 
   function handleAddToCart() {
+    if (needsDevice && !selectedDevice) {
+      alert("Elegí tu dispositivo (Android o iPhone) antes de agregar al carrito.");
+      return;
+    }
+
     const gameFields: GameFieldValue[] = activeFields.map((f) => ({
       label: f.label,
       value: fieldValues[f.key] ?? "",
     }));
+    // Mismo patrón que cualquier otro dato del juego (ID, servidor, etc.):
+    // viaja como un campo más en gameFields, así llega al pedido, al panel
+    // de admin y al aviso de Telegram sin tocar el esquema de pedidos.
+    if (needsDevice && selectedDevice) {
+      gameFields.unshift({ label: "Dispositivo", value: selectedDevice === "android" ? "Android" : "iPhone" });
+    }
 
     const error = validateGameFields(gameFields);
     if (error) {
@@ -177,6 +194,41 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
         <GameSpecialNotice product={product} />
 
+        {needsDevice && (
+          <div className="mb-6">
+            <div className="font-semibold text-sm mb-2 text-brand-textMuted">Elige tu dispositivo</div>
+            <div className="grid grid-cols-2 gap-3">
+              {(["android", "iphone"] as const).map((deviceId) => (
+                <button
+                  key={deviceId}
+                  onClick={() => setSelectedDevice(deviceId)}
+                  className={clsx(
+                    "border-2 rounded-xl p-3 flex items-center justify-center gap-2 transition-colors active:scale-[0.98]",
+                    selectedDevice === deviceId
+                      ? "border-brand-primary bg-brand-primary/10"
+                      : "border-brand-border bg-brand-surface hover:border-brand-textMuted"
+                  )}
+                >
+                  {product.deviceIcons?.[deviceId] ? (
+                    <Image
+                      src={product.deviceIcons[deviceId]!}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="w-6 h-6 rounded object-cover"
+                    />
+                  ) : (
+                    <DeviceIcon device={deviceId} className="w-6 h-6 text-brand-textMuted" />
+                  )}
+                  <span className="text-sm font-semibold">{deviceId === "android" ? "Android" : "iPhone"}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(!needsDevice || selectedDevice) && (
+        <>
         <div className="mb-6">
           <div className="font-semibold text-sm mb-2 text-brand-textMuted">Elige tu paquete</div>
           {/* Antes cada card era un motion.button con fade-in escalonado +
@@ -285,6 +337,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         >
           Agregar al carrito — {formatVariationPrice(selectedVariation)}
         </motion.button>
+        </>
+        )}
 
         {product.description && (
           <div className="mt-6 bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
