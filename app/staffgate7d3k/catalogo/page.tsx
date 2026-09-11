@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useAdminProducts } from "@/lib/adminStore";
 import VariationDndList from "@/components/VariationDndList";
+import DeviceIcon from "@/components/DeviceIcon";
 import SaveBar from "@/components/SaveBar";
 import { fileToUploadedUrl } from "@/lib/image";
 import clsx from "clsx";
@@ -419,6 +420,74 @@ export default function AdminPage() {
                           );
                         })}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+                      <input
+                        type="checkbox"
+                        checked={product.requiresDeviceSelection ?? false}
+                        onChange={(e) => updateProduct(product.id, { requiresDeviceSelection: e.target.checked })}
+                        className="accent-brand-primary"
+                      />
+                      <span className="font-semibold text-xs text-brand-textMuted">
+                        Selección de dispositivo — este producto requiere elegir dispositivo antes de
+                        mostrar los paquetes
+                      </span>
+                    </label>
+
+                    {product.requiresDeviceSelection && (
+                      <div className="grid grid-cols-2 gap-3 pl-6">
+                        {(["android", "iphone"] as const).map((deviceId) => (
+                          <div
+                            key={deviceId}
+                            className="bg-brand-surfaceLight border border-brand-border rounded-lg p-3 flex items-center gap-3"
+                          >
+                            <label className="relative shrink-0 cursor-pointer group">
+                              {product.deviceIcons?.[deviceId] ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={product.deviceIcons[deviceId]}
+                                  alt=""
+                                  className="w-10 h-10 rounded-md border border-brand-border object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-md border border-brand-border bg-brand-bg flex items-center justify-center text-brand-textMuted">
+                                  <DeviceIcon device={deviceId} className="w-5 h-5" />
+                                </div>
+                              )}
+                              <span className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-md flex items-center justify-center text-white text-[9px] font-bold transition-opacity">
+                                ✎
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    const url = await fileToUploadedUrl(file, {
+                                      maxWidth: 300,
+                                      maxHeight: 300,
+                                      quality: 0.85,
+                                    });
+                                    updateProduct(product.id, {
+                                      deviceIcons: { ...product.deviceIcons, [deviceId]: url },
+                                    });
+                                  } catch (err) {
+                                    alert(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+                                  }
+                                }}
+                              />
+                            </label>
+                            <span className="text-sm font-semibold">
+                              {deviceId === "android" ? "Android" : "iPhone"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <button

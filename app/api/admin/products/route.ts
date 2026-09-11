@@ -32,6 +32,8 @@ export async function GET(req: NextRequest) {
     requiresActivisionLink: row.requires_activision_link ?? undefined,
     requiresKonamiId: row.requires_konami_id ?? undefined,
     relatedSlugs: row.related_slugs ?? [],
+    requiresDeviceSelection: row.requires_device_selection ?? undefined,
+    deviceIcons: row.device_icons ?? undefined,
     fields: row.fields ?? [],
     variations: (row.product_variations ?? []).map((v: any) => ({
       id: v.id,
@@ -96,6 +98,8 @@ export async function PUT(req: NextRequest) {
           requires_activision_link: p.requiresActivisionLink ?? false,
           requires_konami_id: p.requiresKonamiId ?? false,
           related_slugs: p.relatedSlugs ?? [],
+          requires_device_selection: p.requiresDeviceSelection ?? false,
+          device_icons: p.deviceIcons ?? {},
           fields: p.fields ?? [],
           sort_order: index,
         },

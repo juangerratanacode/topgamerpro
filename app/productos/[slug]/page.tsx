@@ -23,6 +23,8 @@ function mapProductRow(row: any): Product {
     requiresActivisionLink: row.requires_activision_link ?? undefined,
     requiresKonamiId: row.requires_konami_id ?? undefined,
     relatedSlugs: row.related_slugs ?? [],
+    requiresDeviceSelection: row.requires_device_selection ?? undefined,
+    deviceIcons: row.device_icons ?? undefined,
     fields: row.fields ?? [],
     variations: dedupeVariations(
       (row.product_variations ?? [])
