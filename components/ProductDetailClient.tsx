@@ -12,6 +12,7 @@ import { getVariationFields } from "@/lib/mockProducts";
 import { validateGameFields } from "@/lib/validation";
 import GameSpecialNotice from "./GameSpecialNotice";
 import PackageIconDisplay from "./PackageIconDisplay";
+import PasswordInput from "./PasswordInput";
 import StarRating from "./StarRating";
 import { useReviewStats } from "@/lib/useReviewStats";
 import clsx from "clsx";
@@ -252,17 +253,16 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                       placeholder={field.placeholder}
                       rows={3}
                     />
+                  ) : field.type === "password" ? (
+                    <PasswordInput
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      className={baseClass}
+                      placeholder={field.placeholder}
+                    />
                   ) : (
                     <input
-                      type={
-                        field.type === "email"
-                          ? "email"
-                          : field.type === "password"
-                          ? "password"
-                          : field.type === "number"
-                          ? "number"
-                          : "text"
-                      }
+                      type={field.type === "email" ? "email" : field.type === "number" ? "number" : "text"}
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
                       className={baseClass}
