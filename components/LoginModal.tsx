@@ -13,6 +13,7 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import clsx from "clsx";
 import { useAuth } from "@/lib/authStore";
 import { supabase } from "@/lib/supabaseClient";
+import PasswordInput from "./PasswordInput";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -175,8 +176,7 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
                 className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
                 placeholder="Correo electrónico"
               />
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}

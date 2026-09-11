@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/authStore";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function MiCuentaSeguridadPage() {
   const { updatePassword } = useAuth();
@@ -46,8 +47,7 @@ export default function MiCuentaSeguridadPage() {
           <label className="block text-sm font-semibold mb-1 text-brand-textMuted">
             Nueva contraseña
           </label>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
@@ -59,8 +59,7 @@ export default function MiCuentaSeguridadPage() {
           <label className="block text-sm font-semibold mb-1 text-brand-textMuted">
             Confirmar nueva contraseña
           </label>
-          <input
-            type="password"
+          <PasswordInput
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
