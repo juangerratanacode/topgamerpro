@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useAdminProducts } from "@/lib/adminStore";
-import PackageIconDisplay from "@/components/PackageIconDisplay";
+import VariationDndList from "@/components/VariationDndList";
 import SaveBar from "@/components/SaveBar";
 import { fileToUploadedUrl } from "@/lib/image";
 import clsx from "clsx";
@@ -26,6 +26,7 @@ export default function AdminPage() {
     updateVariation,
     addVariation,
     removeVariation,
+    reorderVariations,
     addField,
     updateField,
     removeField,
@@ -277,98 +278,13 @@ export default function AdminPage() {
                         + Agregar paquete
                       </button>
                     </div>
-                    <div className="space-y-2">
-                      {product.variations.map((v) => (
-                        <div
-                          key={v.id}
-                          className="bg-brand-surfaceLight border border-brand-border rounded-lg p-2 space-y-1.5"
-                        >
-                          <div className="flex items-center gap-2">
-                            <label className="relative shrink-0 cursor-pointer group">
-                              <PackageIconDisplay
-                                variation={v}
-                                className="w-8 h-8 rounded-md border border-brand-border"
-                              />
-                              <span className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-md flex items-center justify-center text-white text-[9px] font-bold transition-opacity">
-                                ✎
-                              </span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  // Ícono chico (se ve en tarjetas pequeñas), no
-                                  // necesita más de 300px — máxima compresión.
-                                  try {
-                                    const url = await fileToUploadedUrl(file, {
-                                      maxWidth: 300,
-                                      maxHeight: 300,
-                                      quality: 0.85,
-                                    });
-                                    updateVariation(product.id, v.id, { iconImageUrl: url });
-                                  } catch (err) {
-                                    alert(err instanceof Error ? err.message : "No se pudo subir la imagen.");
-                                  }
-                                }}
-                              />
-                            </label>
-                            <input
-                              value={v.label}
-                              onChange={(e) => updateVariation(product.id, v.id, { label: e.target.value })}
-                              className="flex-1 bg-brand-bg border border-brand-border rounded px-2 py-1.5 text-xs"
-                              placeholder="Nombre del paquete"
-                            />
-                            <button
-                              onClick={() => removeVariation(product.id, v.id)}
-                              className="text-red-400 hover:text-red-300 text-xs font-bold px-2 shrink-0"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1.5 pl-1">
-                            <div>
-                              <label className="block text-[10px] text-brand-textMuted mb-0.5">
-                                Precio normal (USD)
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={v.priceUsd}
-                                onChange={(e) =>
-                                  updateVariation(product.id, v.id, {
-                                    priceUsd: parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full bg-brand-bg border border-brand-border rounded px-2 py-1.5 text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] text-brand-textMuted mb-0.5">
-                                Precio PayPal (USD, opcional)
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={v.priceUsdPaypal ?? ""}
-                                placeholder="igual al normal"
-                                onChange={(e) =>
-                                  updateVariation(product.id, v.id, {
-                                    priceUsdPaypal:
-                                      e.target.value === "" ? undefined : parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full bg-brand-bg border border-brand-border rounded px-2 py-1.5 text-xs"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      {product.variations.length === 0 && (
-                        <p className="text-xs text-brand-textMuted">Sin paquetes todavía.</p>
-                      )}
-                    </div>
+                    <VariationDndList
+                      productId={product.id}
+                      variations={product.variations}
+                      onUpdateVariation={updateVariation}
+                      onRemoveVariation={removeVariation}
+                      onReorderVariations={reorderVariations}
+                    />
                   </div>
 
                   <div>
