@@ -268,6 +268,21 @@ export function useAdminProducts() {
     );
   }, []);
 
+  // Reordena los paquetes de un producto por su nueva lista de ids (la arma
+  // el componente de drag-and-drop). El guardado ya persiste el orden tal
+  // cual queda el array (asigna sort_order por índice), así que con
+  // reordenar acá el estado alcanza — no hace falta tocar el backend.
+  const reorderVariations = useCallback((productId: string, orderedIds: string[]) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        const byId = new Map(p.variations.map((v) => [v.id, v]));
+        const reordered = orderedIds.map((id) => byId.get(id)).filter((v): v is (typeof p.variations)[number] => !!v);
+        return { ...p, variations: reordered };
+      })
+    );
+  }, []);
+
   const addField = useCallback((productId: string) => {
     setProducts((prev) =>
       prev.map((p) =>
@@ -349,6 +364,7 @@ export function useAdminProducts() {
     updateVariation,
     addVariation,
     removeVariation,
+    reorderVariations,
     addField,
     updateField,
     removeField,
