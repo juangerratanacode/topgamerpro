@@ -19,6 +19,9 @@ export default function Footer() {
           <Link href="/politica-reembolso" className="text-xs text-brand-textMuted hover:text-white">
             Reembolsos
           </Link>
+          <Link href="/terminos-y-condiciones" className="text-xs text-brand-textMuted hover:text-white">
+            Términos y Condiciones
+          </Link>
         </div>
       </div>
     </footer>
