@@ -384,7 +384,6 @@ export default function CheckoutForm() {
             </div>
             <p className="text-xs text-brand-textMuted">
               Lo usamos solo para contactarte sobre tu recarga si hay algún problema.
-              {!user && " No necesitas crear una cuenta — puedes continuar como invitado."}
             </p>
             <button
               onClick={() => step1Valid && setStep(2)}
