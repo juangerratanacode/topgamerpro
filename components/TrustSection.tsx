@@ -12,7 +12,7 @@ const TRUST_ITEMS = [
   },
   {
     label: "Pago Móvil verificado en minutos",
-    hint: "Sin esperas, confirmación al instante",
+    hint: undefined as string | undefined,
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-brand-green" fill="none" strokeWidth="2">
         <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
