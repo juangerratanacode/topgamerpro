@@ -19,8 +19,9 @@ export default function GameSpecialNotice({ product }: { product: Product }) {
       <>
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4 text-sm text-red-200 space-y-3">
           <p>
-            <strong className="text-red-300">Tu cuenta debe estar vinculada a Activision.</strong>{" "}
-            Si no lo has hecho, mira el paso a paso.
+            <strong className="text-red-300">⚠ Importante:</strong> Este servicio de recarga solo
+            está disponible para cuentas vinculadas a Activision. Si no lo has hecho, mira el paso
+            a paso.
           </p>
           {/* Mismo estilo que "Aprende a recargar" (FloatingHelpButton) —
               píldora con ícono de play y color de marca, para que se note
