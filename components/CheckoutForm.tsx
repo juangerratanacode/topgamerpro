@@ -274,6 +274,64 @@ export default function CheckoutForm() {
     return <p className="text-brand-textMuted">Tu carrito está vacío.</p>;
   }
 
+  // Una sola fuente para el resumen — se muestra dos veces (arriba del
+  // método de pago en mobile, y en la barra lateral en desktop) sin
+  // duplicar la lógica ni arriesgarse a que una copia quede desactualizada
+  // respecto a la otra.
+  const orderSummary = (
+    <>
+      <h3 className="font-bold">Resumen del pedido</h3>
+      <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+        {items.map((item) => (
+          <div key={item.cartItemId} className="flex items-center gap-3">
+            <PackageIconDisplay variation={getCartItemIcon(item, products)} className="w-7 h-7 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{item.productName}</p>
+              <p className="text-xs text-brand-textMuted">
+                {item.variationLabel}
+                {item.quantity > 1 ? ` × ${item.quantity}` : ""}
+              </p>
+            </div>
+            <span className="text-sm font-semibold shrink-0">
+              ${(item.unitPriceUsd * item.quantity).toFixed(2)}
+            </span>
+          </div>
+        ))}
+      </div>
+      {usePoints && pointsToRedeem > 0 && (
+        <div className="border-t border-brand-border pt-3 space-y-1.5 text-sm">
+          <div className="flex justify-between text-brand-textMuted">
+            <span>Subtotal</span>
+            <span>{formatAmount(subtotalUsd)}</span>
+          </div>
+          <div className="flex justify-between text-brand-primary font-semibold">
+            <span>Descuento por puntos</span>
+            <span>-{formatAmount(discountUsd)}</span>
+          </div>
+        </div>
+      )}
+      <div
+        className={clsx(
+          !usePoints || pointsToRedeem === 0 ? "border-t border-brand-border pt-4" : "pt-1",
+          "flex justify-between items-center"
+        )}
+      >
+        <span className="font-semibold text-brand-textMuted">Total</span>
+        <div className="text-right">
+          <span className="font-bold text-xl text-brand-primary">{formattedTotal}</span>
+          {/* Solo se muestra el equivalente en USD cuando la moneda de
+              visualización es PayPal (ahí el monto ya tiene la comisión
+              sumada, y aclarar el USD de base tiene sentido). En Bs. y en
+              USD/Binance el total ya es el número final — mostrar el
+              mismo monto dos veces es ruido, no información nueva. */}
+          {currency === "PAYPAL" && (
+            <span className="block text-xs text-brand-textMuted">${total.toFixed(2)} USD</span>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
       {/* Left: steps */}
@@ -289,26 +347,35 @@ export default function CheckoutForm() {
           <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-4">
             <h2 className="font-bold text-lg">¿Quién recibe la confirmación?</h2>
             <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-brand-textMuted mb-1">Nombre</label>
+                <input
+                  className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
+                  placeholder="Nombre"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-brand-textMuted mb-1">Apellido</label>
+                <input
+                  className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
+                  placeholder="Apellido"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-brand-textMuted mb-1">Correo electrónico</label>
               <input
-                className="bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
-                placeholder="Nombre"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-              />
-              <input
-                className="bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
-                placeholder="Apellido"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
+                placeholder="Correo electrónico"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <input
-              className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-white placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary"
-              placeholder="Correo electrónico"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
             <div>
               <label className="block text-xs font-semibold text-brand-textMuted mb-1">
                 Número de WhatsApp
@@ -335,16 +402,24 @@ export default function CheckoutForm() {
         )}
 
         {step === 2 && paymentsHydrated && (
-          <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg">Elige tu método de pago</h2>
-              <button
-                onClick={() => setStep(1)}
-                className="text-xs text-brand-textMuted hover:text-white underline"
-              >
-                Editar datos
-              </button>
+          <>
+            {/* Copia mobile del resumen, arriba del método de pago — en
+                desktop ya se ve en la barra lateral al mismo tiempo, así
+                que acá se oculta para no repetirlo dos veces. */}
+            <div className="lg:hidden bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-4">
+              {orderSummary}
             </div>
+
+            <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold text-lg">Elige tu método de pago</h2>
+                <button
+                  onClick={() => setStep(1)}
+                  className="text-xs text-brand-textMuted hover:text-white underline"
+                >
+                  Editar datos
+                </button>
+              </div>
 
             {availableMethods.length === 0 ? (
               <p className="text-sm text-brand-textMuted bg-brand-surfaceLight border border-brand-border rounded-xl p-4">
@@ -538,54 +613,21 @@ export default function CheckoutForm() {
             >
               {submitting ? "Procesando..." : "Confirmar por WhatsApp"}
             </button>
-          </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Right: sticky order summary */}
-      <div className="lg:sticky lg:top-24 bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-4">
-        <h3 className="font-bold">Resumen del pedido</h3>
-        <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-          {items.map((item) => (
-            <div key={item.cartItemId} className="flex items-center gap-3">
-              <PackageIconDisplay
-                variation={getCartItemIcon(item, products)}
-                className="w-7 h-7 shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{item.productName}</p>
-                <p className="text-xs text-brand-textMuted">
-                  {item.variationLabel}
-                  {item.quantity > 1 ? ` × ${item.quantity}` : ""}
-                </p>
-              </div>
-              <span className="text-sm font-semibold shrink-0">
-                ${(item.unitPriceUsd * item.quantity).toFixed(2)}
-              </span>
-            </div>
-          ))}
-        </div>
-        {usePoints && pointsToRedeem > 0 && (
-          <div className="border-t border-brand-border pt-3 space-y-1.5 text-sm">
-            <div className="flex justify-between text-brand-textMuted">
-              <span>Subtotal</span>
-              <span>{formatAmount(subtotalUsd)}</span>
-            </div>
-            <div className="flex justify-between text-brand-primary font-semibold">
-              <span>Descuento por puntos</span>
-              <span>-{formatAmount(discountUsd)}</span>
-            </div>
-          </div>
+      {/* Right: sticky order summary — en desktop se ve siempre (pasos 1 y
+          2); en mobile se oculta durante el paso 2 porque ahí ya se
+          muestra la copia de arriba, justo encima del método de pago. */}
+      <div
+        className={clsx(
+          "lg:sticky lg:top-24 bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-4",
+          step === 2 && "hidden lg:block"
         )}
-        <div className={clsx(!usePoints || pointsToRedeem === 0 ? "border-t border-brand-border pt-4" : "pt-1", "flex justify-between items-center")}>
-          <span className="font-semibold text-brand-textMuted">Total</span>
-          <div className="text-right">
-            <span className="font-bold text-xl text-brand-primary">{formattedTotal}</span>
-            {currency !== "USD" && (
-              <span className="block text-xs text-brand-textMuted">${total.toFixed(2)} USD</span>
-            )}
-          </div>
-        </div>
+      >
+        {orderSummary}
       </div>
     </div>
   );
