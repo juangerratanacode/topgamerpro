@@ -360,7 +360,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line text-justify px-4 pb-4">
+                  <p className="text-brand-textMuted text-sm leading-relaxed whitespace-pre-line px-4 pb-4">
                     {normalizeParagraphs(product.description)}
                   </p>
                 </motion.div>

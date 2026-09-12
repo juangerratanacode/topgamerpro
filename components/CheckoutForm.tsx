@@ -71,6 +71,13 @@ export default function CheckoutForm() {
   );
 
   const [step, setStep] = useState<1 | 2>(1);
+  // Al pasar de "Tus datos" a "Pago" (o volver), el scroll se queda donde
+  // estaba — si el cliente llegó a "Continuar al pago" habiendo scrolleado
+  // hasta el fondo del formulario, el resumen y el método de pago quedan
+  // fuera de vista y hay que hacer scroll manual para verlos.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
   const [method, setMethod] = useState<PaymentMethodId>(
     availableMethods[0] ?? methodsForDisplayCurrency(display)[0]
   );
