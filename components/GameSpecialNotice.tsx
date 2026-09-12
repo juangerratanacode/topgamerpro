@@ -17,16 +17,24 @@ export default function GameSpecialNotice({ product }: { product: Product }) {
   if (product.requiresActivisionLink) {
     return (
       <>
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4 text-sm text-red-200">
-          <strong className="text-red-300">Tu cuenta debe estar vinculada a Activision.</strong>{" "}
-          Si no lo has hecho,{" "}
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4 text-sm text-red-200 space-y-3">
+          <p>
+            <strong className="text-red-300">Tu cuenta debe estar vinculada a Activision.</strong>{" "}
+            Si no lo has hecho, mira el paso a paso.
+          </p>
+          {/* Mismo estilo que "Aprende a recargar" (FloatingHelpButton) —
+              píldora con ícono de play y color de marca, para que se note
+              que es una acción real (ver video) y no solo un link de texto. */}
           <button
             onClick={() => setTutorialOpen(true)}
-            className="font-semibold text-red-200 underline underline-offset-2 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-primaryDark text-white font-semibold text-sm rounded-full shadow-glow transition-colors pl-3 pr-4 py-2"
           >
-            Aquí tienes el paso a paso
+            <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M10 8.5l5 3.5-5 3.5v-7z" fill="currentColor" stroke="none" />
+            </svg>
+            Ver tutorial paso a paso
           </button>
-          .
         </div>
         <VideoTutorialModal
           open={tutorialOpen}

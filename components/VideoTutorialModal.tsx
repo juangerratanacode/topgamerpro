@@ -75,7 +75,12 @@ export default function VideoTutorialModal({ open, onClose, videoId, title }: Vi
                 {open && (
                   <iframe
                     key={videoId}
-                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1`}
+                    // modestbranding/rel/iv_load_policy: minimizan la marca de
+                    // YouTube (logo, sugeridos de otros canales, anotaciones)
+                    // — el nombre del canal del creador puede seguir
+                    // apareciendo un instante al iniciar, eso ya no lo
+                    // controla el embed, es política de YouTube.
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&controls=1`}
                     title={title}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
