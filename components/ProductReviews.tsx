@@ -8,6 +8,19 @@ import clsx from "clsx";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
+// r.date llega como "YYYY-MM-DD" (ver app/api/reviews/route.ts). Se arma la
+// fecha a mano en vez de "new Date(iso)" — eso lo interpreta como
+// medianoche UTC, y en huso horario negativo (Venezuela, UTC-4) termina
+// mostrando el día anterior.
+function formatReviewDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("es-VE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function ProductReviews({ slug, productName }: { slug: string; productName: string }) {
   const { average, count, all } = useReviewStats(slug);
   const [showForm, setShowForm] = useState(false);
@@ -183,7 +196,7 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
                 <StarRating rating={r.rating} />
               </div>
               <p className="text-sm text-brand-textMuted">{r.content}</p>
-              <p className="text-xs text-brand-textMuted/60 mt-2">{r.date}</p>
+              <p className="text-xs text-brand-textMuted/60 mt-2">{formatReviewDate(r.date)}</p>
             </div>
           ))}
         </div>
