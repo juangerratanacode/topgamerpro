@@ -5,7 +5,6 @@
 // cero petición en cascada desde el cliente.
 
 import { supabase } from "./supabaseClient";
-import { mockProducts } from "./mockProducts";
 import { DEFAULT_BANNERS, type Banner } from "./bannersStore";
 import type { Product } from "./types";
 
@@ -25,14 +24,25 @@ async function fetchBannersServer(): Promise<Banner[]> {
 }
 
 async function fetchProductsServer(): Promise<Product[]> {
-  if (!supabase) return mockProducts;
+  // Siempre se lee directo de Supabase, sin datos de muestra de respaldo —
+  // ver el comentario equivalente en app/productos/[slug]/page.tsx. Mejor
+  // un catálogo vacío momentáneo (con log del error) que clientes viendo
+  // precios/paquetes de mentira sin ningún aviso.
+  if (!supabase) {
+    console.error("Supabase no está configurado — no se puede cargar el catálogo.");
+    return [];
+  }
   const { data: rows, error } = await supabase
     .from("products")
     .select("*, product_variations(*)")
     .order("sort_order", { ascending: true })
     .order("sort_order", { referencedTable: "product_variations", ascending: true });
 
-  if (error || !rows || rows.length === 0) return mockProducts;
+  if (error) {
+    console.error("Error cargando el catálogo desde Supabase:", error.message);
+    return [];
+  }
+  if (!rows || rows.length === 0) return [];
 
   return rows.map((row: any) => ({
     id: row.id,
@@ -72,8 +82,9 @@ export interface ProductSlugEntry {
 // slug + updated_at en vez de todas las variaciones de cada producto, que
 // ahí no hacen falta.
 export async function fetchProductSlugsServer(): Promise<ProductSlugEntry[]> {
-  if (!supabase) return mockProducts.map((p) => ({ slug: p.slug }));
+  if (!supabase) return [];
   const { data, error } = await supabase.from("products").select("slug, updated_at");
-  if (error || !data) return mockProducts.map((p) => ({ slug: p.slug }));
+  if (error) console.error("Error cargando slugs para el sitemap desde Supabase:", error.message);
+  if (error || !data) return [];
   return data.map((row: any) => ({ slug: row.slug, updatedAt: row.updated_at ?? undefined }));
 }

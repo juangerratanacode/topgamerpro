@@ -380,7 +380,10 @@ export function useAdminProducts() {
 // hagas en /admin/catalogo (ícono, precio, descripción, juego nuevo) se
 // ve reflejado de inmediato en la tienda, sin duplicar datos.
 export function useStorefrontProducts() {
-  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  // Arranca vacío, nunca con los datos de muestra — antes de que Supabase
+  // responda, "hydrated" en false es la señal para que quien consume este
+  // hook muestre un esqueleto de carga en vez de datos falsos.
+  const [products, setProducts] = useState<Product[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -389,7 +392,10 @@ export function useStorefrontProducts() {
     async function load() {
       const fromSupabase = await fetchProductsFromSupabase();
       if (cancelled) return;
-      setProducts(fromSupabase && fromSupabase.length > 0 ? fromSupabase : defaultProducts);
+      // Sin datos de muestra de respaldo acá tampoco — ver el comentario en
+      // app/productos/[slug]/page.tsx. Si Supabase falla, mejor mostrar
+      // "no hay productos" que el catálogo de mentira del viejo WordPress.
+      setProducts(fromSupabase ?? []);
       setHydrated(true);
     }
 

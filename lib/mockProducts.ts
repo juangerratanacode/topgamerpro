@@ -1,9 +1,14 @@
-// Datos de ejemplo SOLO para poder ver el sitio funcionando en el
-// navegador antes de conectar Supabase. Cuando armemos la base de
-// datos, este archivo se reemplaza por una consulta real y se borra.
+// Datos de ejemplo del viejo WordPress de pitcharge.com — YA NO se le
+// muestran al cliente en ningún caso: la tienda (home, página de
+// producto, carrito, checkout) siempre lee directo de Supabase, y si esa
+// consulta falla, se trata como error/catálogo vacío en vez de disfrazar
+// el problema con estos datos de mentira.
 //
-// Las imágenes en /public/productos/ son las MISMAS que ya usabas en
-// pitcharge.com, extraídas directo del export de WordPress.
+// El único lugar que todavía los usa es lib/adminStore.ts, como red de
+// seguridad SOLO dentro del panel /staffgate7d3k/catalogo: si al admin no
+// le carga el catálogo real, ve estos datos con un aviso claro de que no
+// son los reales y con el guardado bloqueado, para que nunca pueda
+// sobrescribir la base de datos real con esto sin darse cuenta.
 
 import type { Product, GameFieldDef } from "./types";
 
@@ -290,9 +295,4 @@ export const mockProducts: Product[] = [
 
 export function getProductBySlug(slug: string): Product | undefined {
   return mockProducts.find((p) => p.slug === slug);
-}
-
-export function getVariationFields(product: Product, variationId: string): GameFieldDef[] {
-  const variation = product.variations.find((v) => v.id === variationId);
-  return variation?.fieldsOverride ?? product.fields;
 }

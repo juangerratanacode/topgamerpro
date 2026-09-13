@@ -1,4 +1,4 @@
-import type { Product, ProductVariation } from "./types";
+import type { GameFieldDef, Product, ProductVariation } from "./types";
 
 // Única fuente de verdad para deduplicar paquetes por id o por etiqueta.
 // Se usa tanto al leer el catálogo para el admin como al leer un producto
@@ -19,4 +19,9 @@ export function dedupeVariations<T extends Pick<ProductVariation, "id" | "label"
 
 export function dedupeProducts(products: Product[]): Product[] {
   return products.map((p) => ({ ...p, variations: dedupeVariations(p.variations) }));
+}
+
+export function getVariationFields(product: Product, variationId: string): GameFieldDef[] {
+  const variation = product.variations.find((v) => v.id === variationId);
+  return variation?.fieldsOverride ?? product.fields;
 }

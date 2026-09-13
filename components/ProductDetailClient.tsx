@@ -8,7 +8,7 @@ import type { Product, ProductVariation, GameFieldValue } from "@/lib/types";
 import { useCart } from "@/lib/cartStore";
 import { useCurrency } from "@/lib/currencyStore";
 import { getPaypalDisplayPrice } from "@/lib/pricing";
-import { getVariationFields } from "@/lib/mockProducts";
+import { getVariationFields } from "@/lib/productUtils";
 import { validateGameFields } from "@/lib/validation";
 import GameSpecialNotice from "./GameSpecialNotice";
 import PackageIconDisplay from "./PackageIconDisplay";

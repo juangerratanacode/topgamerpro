@@ -4,7 +4,6 @@ import ProductDetailClient from "@/components/ProductDetailClient";
 import ProductReviews from "@/components/ProductReviews";
 import RelatedProducts from "@/components/RelatedProducts";
 import { supabase } from "@/lib/supabaseClient";
-import { mockProducts } from "@/lib/mockProducts";
 import { dedupeVariations } from "@/lib/productUtils";
 import type { Product } from "@/lib/types";
 
@@ -44,17 +43,29 @@ function mapProductRow(row: any): Product {
 }
 
 async function getProductBySlugServer(slug: string): Promise<Product | undefined> {
-  if (supabase) {
-    const { data: row, error } = await supabase
-      .from("products")
-      .select("*, product_variations(*)")
-      .eq("slug", slug)
-      .maybeSingle();
-
-    if (!error && row) return mapProductRow(row);
+  // Siempre se lee directo de Supabase — el catálogo real es lo único que
+  // se le muestra al cliente. Antes, si Supabase no estaba configurado o
+  // la consulta fallaba, esto caía en mockProducts.ts (datos de muestra
+  // del viejo WordPress de pitcharge.com) sin avisar nada, y un cliente
+  // real podía terminar viendo paquetes y precios de mentira como si
+  // fueran reales. Ahora cualquier problema se trata como "no encontrado".
+  if (!supabase) {
+    console.error("Supabase no está configurado — no se puede cargar el producto.");
+    return undefined;
   }
 
-  return mockProducts.find((p) => p.slug === slug);
+  const { data: row, error } = await supabase
+    .from("products")
+    .select("*, product_variations(*)")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Error cargando el producto "${slug}" desde Supabase:`, error.message);
+    return undefined;
+  }
+
+  return row ? mapProductRow(row) : undefined;
 }
 
 async function getRelatedProducts(slugs: string[]): Promise<Product[]> {
