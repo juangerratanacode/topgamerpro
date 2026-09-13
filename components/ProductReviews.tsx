@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useReviewStats, invalidateReviewsCache } from "@/lib/useReviewStats";
 import StarRating from "./StarRating";
 import clsx from "clsx";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export default function ProductReviews({ slug, productName }: { slug: string; productName: string }) {
   const { average, count, all } = useReviewStats(slug);
@@ -15,10 +18,19 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
   const [visibleCount, setVisibleCount] = useState(6);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Antes cualquiera podía scriptear POST /api/reviews sin ningún freno —
+  // ni Turnstile ni límite de intentos, a diferencia de los pedidos de
+  // invitado que sí lo piden. Mismo mecanismo que ya se usa en el checkout.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!author.trim() || !email.trim() || !content.trim()) return;
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setSubmitError("Completa la verificación antes de publicar.");
+      return;
+    }
 
     setSubmitting(true);
     setSubmitError(null);
@@ -32,11 +44,14 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
           email: email.trim(),
           content: content.trim(),
           rating,
+          turnstileToken,
         }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setSubmitError(data?.error ?? "No se pudo publicar la reseña.");
+        setTurnstileToken(null);
+        turnstileRef.current?.reset();
         return;
       }
       invalidateReviewsCache();
@@ -129,6 +144,15 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
             rows={3}
             className="w-full bg-brand-surfaceLight border border-brand-border rounded-lg px-4 py-3 text-sm placeholder:text-brand-textMuted focus:outline-none focus:border-brand-primary resize-none"
           />
+          {TURNSTILE_SITE_KEY && (
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={TURNSTILE_SITE_KEY}
+              onSuccess={setTurnstileToken}
+              onExpire={() => setTurnstileToken(null)}
+              onError={() => setTurnstileToken(null)}
+            />
+          )}
           {submitError && <p className="text-xs text-red-400">{submitError}</p>}
           <button
             type="submit"

@@ -30,21 +30,34 @@ export function useAccountOrders() {
   const [points, setPoints] = useState(0);
   const [pointsRedeemedTotal, setPointsRedeemedTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  // Cambiar este número fuerza al useEffect a reintentar el fetch.
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!session?.access_token) return;
     setLoading(true);
+    setError(false);
     fetch("/api/mi-cuenta/orders", {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         setOrders(data.orders ?? []);
         setPoints(data.points ?? 0);
         setPointsRedeemedTotal(data.pointsRedeemedTotal ?? 0);
       })
+      .catch(() => {
+        // Sin este catch, una falla de red dejaba "orders" en null para
+        // siempre y las páginas de /mi-cuenta se quedaban en blanco sin
+        // avisar nada ni ofrecer reintentar.
+        setError(true);
+      })
       .finally(() => setLoading(false));
-  }, [session]);
+  }, [session, retryCount]);
 
-  return { orders, points, pointsRedeemedTotal, loading };
+  return { orders, points, pointsRedeemedTotal, loading, error, retry: () => setRetryCount((n) => n + 1) };
 }

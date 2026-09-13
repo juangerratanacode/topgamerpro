@@ -328,6 +328,16 @@ export default function CheckoutForm() {
         // con el que abrirlo a mano.
       }
       router.push(`/pedido-confirmado?orderId=${orderId}&wa=${encodeURIComponent(waUrl)}`);
+    } catch (err) {
+      // Falla de red real (sin conexión, DNS, etc.) — no un simple !res.ok,
+      // eso ya se maneja arriba. Sin este catch, la pestaña de WhatsApp
+      // quedaba pegada en "Confirmando tu pedido..." para siempre y el
+      // cliente no se enteraba de que el pedido NO se llegó a crear.
+      console.error("Error creando el pedido:", err);
+      waWindow?.close();
+      setTurnstileToken(null);
+      turnstileRef.current?.reset();
+      alert("No se pudo crear el pedido — revisa tu conexión e intenta de nuevo.");
     } finally {
       setSubmitting(false);
     }

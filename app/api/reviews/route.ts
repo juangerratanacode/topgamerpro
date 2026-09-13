@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
+import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -54,6 +55,17 @@ export async function POST(req: NextRequest) {
   }
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return NextResponse.json({ error: "Calificación inválida." }, { status: 400 });
+  }
+
+  // Antes cualquiera podía scriptear este POST sin ningún freno — ni
+  // Turnstile ni límite de intentos, a diferencia de /api/orders que ya
+  // pide Turnstile a invitados. Mismo mecanismo acá.
+  if (process.env.TURNSTILE_SECRET_KEY) {
+    const remoteIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const verification = await verifyTurnstileToken(body?.turnstileToken, remoteIp);
+    if (!verification.success) {
+      return NextResponse.json({ error: verification.error }, { status: 400 });
+    }
   }
 
   const { error } = await supabaseAdmin.from("product_reviews").insert({

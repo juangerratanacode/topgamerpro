@@ -12,7 +12,7 @@ const STATUS_META: Record<AccountOrder["status"], { label: string; className: st
 
 export default function MiCuentaPedidosPage() {
   const { format } = useCurrency();
-  const { orders, loading } = useAccountOrders();
+  const { orders, loading, error, retry } = useAccountOrders();
 
   return (
     <div className="space-y-4">
@@ -20,7 +20,20 @@ export default function MiCuentaPedidosPage() {
 
       {loading && <p className="text-brand-textMuted text-sm">Cargando pedidos...</p>}
 
-      {!loading && orders && orders.length === 0 && (
+      {!loading && error && (
+        <div className="bg-brand-surface border border-brand-border rounded-2xl p-10 flex flex-col items-center text-center gap-4">
+          <p className="font-semibold">No se pudieron cargar tus pedidos</p>
+          <p className="text-sm text-brand-textMuted">Revisa tu conexión e intenta de nuevo.</p>
+          <button
+            onClick={retry}
+            className="bg-brand-primary hover:bg-brand-primaryDark text-brand-bg font-bold px-5 py-2.5 rounded-full transition-colors text-sm"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && orders && orders.length === 0 && (
         <div className="bg-brand-surface border border-brand-border rounded-2xl p-10 flex flex-col items-center text-center gap-4">
           <div className="w-14 h-14 rounded-full bg-brand-surfaceLight flex items-center justify-center text-brand-textMuted">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,7 +53,7 @@ export default function MiCuentaPedidosPage() {
         </div>
       )}
 
-      {!loading && orders && orders.length > 0 && (
+      {!loading && !error && orders && orders.length > 0 && (
         <div className="space-y-3">
           {orders.map((order) => {
             const statusMeta = STATUS_META[order.status];
