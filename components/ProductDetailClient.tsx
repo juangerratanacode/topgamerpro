@@ -36,6 +36,7 @@ function normalizeParagraphs(text: string): string {
 
 export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation>(product.variations[0]);
+  const [quantity, setQuantity] = useState(1);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [descriptionOpen, setDescriptionOpen] = useState(true);
   // Solo aplica a productos con requiresDeviceSelection (ej. eFootball) —
@@ -56,6 +57,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   // no la conversión genérica del precio base.
   function formatVariationPrice(v: ProductVariation) {
     return display === "PAYPAL" ? `$${getPaypalDisplayPrice(v).toFixed(2)}` : format(v.priceUsd);
+  }
+
+  function formatVariationTotal(v: ProductVariation, qty: number) {
+    return display === "PAYPAL"
+      ? `$${(getPaypalDisplayPrice(v) * qty).toFixed(2)}`
+      : format(v.priceUsd * qty);
   }
 
   function scrollToReviews() {
@@ -93,7 +100,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       variationLabel: selectedVariation.label,
       unitPriceUsd: selectedVariation.priceUsd,
       unitPriceUsdPaypal: selectedVariation.priceUsdPaypal,
-      quantity: 1,
+      quantity,
       gameFields,
       reloadlyProductId: selectedVariation.reloadlyProductId ?? null,
       icon: selectedVariation.icon,
@@ -240,7 +247,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             {product.variations.map((v) => (
               <button
                 key={v.id}
-                onClick={() => setSelectedVariation(v)}
+                onClick={() => {
+                  setSelectedVariation(v);
+                  setQuantity(1);
+                }}
                 className={clsx(
                   "border-2 rounded-xl p-3 lg:p-2.5 text-center transition-colors active:scale-[0.96] flex flex-col items-center gap-1",
                   selectedVariation.id === v.id
@@ -330,12 +340,36 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           </div>
         )}
 
+        <div className="mb-4">
+          <div className="font-semibold text-sm mb-2 text-brand-textMuted">Cantidad</div>
+          <div className="inline-flex items-center border border-brand-border rounded-full overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              disabled={quantity <= 1}
+              aria-label="Restar cantidad"
+              className="w-10 h-10 flex items-center justify-center text-lg font-bold text-brand-textMuted hover:text-white hover:bg-brand-surfaceLight disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+            >
+              −
+            </button>
+            <span className="w-10 text-center font-bold text-sm">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => q + 1)}
+              aria-label="Sumar cantidad"
+              className="w-10 h-10 flex items-center justify-center text-lg font-bold text-brand-textMuted hover:text-white hover:bg-brand-surfaceLight transition-colors"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleAddToCart}
           className="w-full bg-brand-primary hover:bg-brand-primaryDark text-white font-bold py-3 rounded-full transition-colors"
         >
-          Agregar al carrito — {formatVariationPrice(selectedVariation)}
+          Agregar al carrito — {formatVariationTotal(selectedVariation, quantity)}
         </motion.button>
         </>
         )}

@@ -68,12 +68,20 @@ export default function CarritoPage() {
         <span className="font-bold text-lg text-brand-green">${totalUsd.toFixed(2)}</span>
       </div>
 
-      <button
-        onClick={() => router.push("/checkout")}
-        className="w-full bg-brand-primary hover:bg-brand-primaryDark text-white font-bold py-3 rounded-full transition-colors"
-      >
-        Ir al checkout
-      </button>
+      <div className="flex flex-col sm:flex-row-reverse gap-3">
+        <button
+          onClick={() => router.push("/checkout")}
+          className="flex-1 bg-brand-primary hover:bg-brand-primaryDark text-white font-bold py-3 rounded-full transition-colors"
+        >
+          Ir al checkout
+        </button>
+        <Link
+          href="/#catalogo"
+          className="flex-1 border border-brand-border hover:border-brand-primary text-center font-bold py-3 rounded-full transition-colors"
+        >
+          Seguir comprando
+        </Link>
+      </div>
     </div>
   );
 }
