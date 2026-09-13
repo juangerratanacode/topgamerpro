@@ -7,9 +7,8 @@ export type PaymentMethodId = "pago_movil_manual" | "paypal" | "binance";
 
 export type PackageIcon = "diamond" | "coin" | "cp" | "uc" | "robux" | "pass" | "card" | "generic";
 
-// Categorías de navegación, igual que en pitcharge.com (Supercell, Fútbol,
-// Gift Cards, etc.) — distintas del "category" por juego que ya existía,
-// que se usa como subtítulo dentro de la tarjeta de producto.
+// Categorías de navegación (Supercell, Fútbol, Gift Cards, etc.) — usadas
+// para los filtros del catálogo.
 export type GameGenre =
   | "battle-royale"
   | "moba"
@@ -83,7 +82,6 @@ export interface Product {
   // muestra en su propia sección debajo del botón de compra.
   description?: string;
   imageUrl?: string;
-  category: string;
   genre: GameGenre;
   variations: ProductVariation[];
   fields: GameFieldDef[]; // campos por defecto para todos los paquetes de este producto

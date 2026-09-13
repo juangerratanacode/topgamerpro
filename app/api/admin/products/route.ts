@@ -27,7 +27,6 @@ export async function GET(req: NextRequest) {
     shortDescription: row.short_description ?? undefined,
     description: row.description ?? undefined,
     imageUrl: row.image_url ?? undefined,
-    category: row.category,
     genre: row.genre,
     requiresActivisionLink: row.requires_activision_link ?? undefined,
     requiresKonamiId: row.requires_konami_id ?? undefined,
@@ -93,7 +92,14 @@ export async function PUT(req: NextRequest) {
           short_description: p.shortDescription ?? null,
           description: p.description ?? null,
           image_url: p.imageUrl ?? null,
-          category: p.category,
+          // La columna "category" ya no se usa desde la app (la tarjeta de
+          // producto usa el nombre directo) ni se puede editar aparte desde
+          // el admin — eso fue justo lo que causó que "Dream League Soccer"
+          // se quedara con el valor por defecto "Nuevo Juego" para siempre,
+          // sin ninguna forma de corregirlo desde la UI. Se sigue mandando
+          // el nombre acá solo para no tener que migrar la columna (que es
+          // NOT NULL), nunca más se lee de vuelta.
+          category: p.name,
           genre: p.genre,
           requires_activision_link: p.requiresActivisionLink ?? false,
           requires_konami_id: p.requiresKonamiId ?? false,

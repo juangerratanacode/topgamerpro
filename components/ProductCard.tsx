@@ -45,7 +45,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
       <div className="p-3 flex flex-col flex-1">
         <h3 className="font-bold text-sm leading-tight truncate mb-0.5">{product.name}</h3>
-        <p className="text-xs text-brand-textMuted truncate">Recarga de {product.category}</p>
+        <p className="text-xs text-brand-textMuted truncate">Recarga de {product.name}</p>
 
         <div className="h-4 mt-1">
           {count > 0 && (

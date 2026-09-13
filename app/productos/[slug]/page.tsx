@@ -17,7 +17,6 @@ function mapProductRow(row: any): Product {
     shortDescription: row.short_description ?? undefined,
     description: row.description ?? undefined,
     imageUrl: row.image_url ?? undefined,
-    category: row.category,
     genre: row.genre,
     requiresActivisionLink: row.requires_activision_link ?? undefined,
     requiresKonamiId: row.requires_konami_id ?? undefined,
