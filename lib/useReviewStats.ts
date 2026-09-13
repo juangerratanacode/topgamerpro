@@ -21,6 +21,7 @@ export interface ProductReview {
   email?: string;
   content: string;
   rating: number;
+  verifiedPurchase?: boolean;
   date: string;
 }
 

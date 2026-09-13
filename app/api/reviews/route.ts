@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("product_reviews")
-    .select("id, product_slug, author, email, content, rating, created_at")
+    .select("id, product_slug, author, email, content, rating, verified_purchase, created_at")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     email: auth.ok ? r.email : undefined,
     content: r.content,
     rating: r.rating,
+    verifiedPurchase: r.verified_purchase ?? false,
     date: r.created_at.slice(0, 10),
   }));
 
@@ -68,12 +69,27 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // "Compró este producto" — igual que el "propietario verificado" de
+  // WooCommerce, pero sin exigir cuenta/login: alcanza con que el correo
+  // de la reseña coincida con el de un pedido CONFIRMADO que incluya este
+  // mismo producto. Se calcula una sola vez al guardar (no en cada
+  // lectura) para no repetir el cruce cada vez que se lista la reseña.
+  const { data: purchaseMatch } = await supabaseAdmin
+    .from("orders")
+    .select("id, order_items!inner(product_slug)")
+    .ilike("customer_email", email)
+    .eq("status", "confirmado")
+    .eq("order_items.product_slug", productSlug)
+    .limit(1);
+  const verifiedPurchase = (purchaseMatch?.length ?? 0) > 0;
+
   const { error } = await supabaseAdmin.from("product_reviews").insert({
     product_slug: productSlug,
     author,
     email,
     content,
     rating,
+    verified_purchase: verifiedPurchase,
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

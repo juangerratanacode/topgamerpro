@@ -168,8 +168,18 @@ export default function ProductReviews({ slug, productName }: { slug: string; pr
         <div className="grid sm:grid-cols-2 gap-4">
           {all.slice(0, visibleCount).map((r) => (
             <div key={r.id} className="bg-brand-surface border border-brand-border rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-sm">{r.author}</span>
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <span className="font-semibold text-sm flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{r.author}</span>
+                  {r.verifiedPurchase && (
+                    <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-brand-green bg-brand-green/10 border border-brand-green/30 rounded-full px-2 py-0.5">
+                      <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Compró este producto
+                    </span>
+                  )}
+                </span>
                 <StarRating rating={r.rating} />
               </div>
               <p className="text-sm text-brand-textMuted">{r.content}</p>
