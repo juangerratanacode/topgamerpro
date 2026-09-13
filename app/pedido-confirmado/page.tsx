@@ -19,7 +19,7 @@ function PedidoConfirmadoContent() {
         </svg>
       </div>
       <h1 className="text-2xl font-extrabold mb-2">¡Pedido realizado!</h1>
-      <p className="text-brand-textMuted mb-6">Orden #{orderId}</p>
+      <p className="text-brand-textMuted mb-6">Orden #{orderId.slice(0, 8).toUpperCase()}</p>
 
       <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-lg p-4 mb-6 text-sm text-yellow-100 text-left">
         <strong className="text-brand-gold">🔔 ¿No se abrió tu WhatsApp?</strong>

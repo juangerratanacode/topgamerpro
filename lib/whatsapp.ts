@@ -22,7 +22,11 @@ export function buildWhatsAppMessage(
 ): string {
   const lines: string[] = [];
   lines.push("¡Hola! Quiero realizar un pedido:");
-  lines.push(`Orden: #${orderId}`);
+  // El id real es un UUID largo de Supabase — ilegible en el chat. Se
+  // muestra igual que en "Mis pedidos" (primeros 8 caracteres), que
+  // alcanza para que el cliente lo reconozca y el admin lo ubique en la
+  // lista por nombre/fecha.
+  lines.push(`Orden: #${orderId.slice(0, 8).toUpperCase()}`);
   lines.push(`Cliente: ${customer.firstName} ${customer.lastName}`);
   lines.push(`Correo: ${customer.email}`);
   lines.push(`WhatsApp: ${customer.phone}`);

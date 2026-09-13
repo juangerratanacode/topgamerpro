@@ -273,7 +273,7 @@ export default function CheckoutForm() {
       } catch (err) {
         console.error("No se pudo armar el mensaje de WhatsApp:", err);
         waUrl = buildWhatsAppUrl(
-          `¡Hola! Quiero realizar un pedido:\nOrden: #${orderId}\nCliente: ${customer.firstName} ${customer.lastName}\nWhatsApp: ${customer.phone}`
+          `¡Hola! Quiero realizar un pedido:\nOrden: #${orderId.slice(0, 8).toUpperCase()}\nCliente: ${customer.firstName} ${customer.lastName}\nWhatsApp: ${customer.phone}`
         );
       }
 
