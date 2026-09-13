@@ -36,7 +36,7 @@ export function buildWhatsAppMessage(
     lines.push(
       `${item.quantity} x ${item.productName} - ${item.variationLabel} — ${totals.formatPrice(lineTotalUsd)}`
     );
-    for (const field of item.gameFields) {
+    for (const field of item.gameFields ?? []) {
       lines.push(`  ${field.label}: ${field.value}`);
     }
     lines.push("");

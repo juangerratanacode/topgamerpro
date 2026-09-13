@@ -16,6 +16,7 @@ import { useAccountOrders } from "@/lib/useAccountOrders";
 import { maxRedeemablePoints, pointsToUsd, POINTS_REDEMPTION_STEP } from "@/lib/loyalty";
 import PhoneInput, { isPhoneValid, formatPhoneE164, type PhoneValue } from "@/components/PhoneInput";
 import PackageIconDisplay from "@/components/PackageIconDisplay";
+import CurrencySwitcher from "@/components/CurrencySwitcher";
 import type { Currency, PaymentMethodId } from "@/lib/types";
 import clsx from "clsx";
 
@@ -235,31 +236,46 @@ export default function CheckoutForm() {
       }
       const orderId = data.orderId ?? `TEMP-${Date.now()}`;
 
-      // wa.me solo puede pre-llenar texto — no hay forma de adjuntar la
-      // imagen automáticamente al abrir el chat, así que en vez de decir
-      // "adjunto en este chat" (que nunca pasaba solo) se manda un link
-      // corto con dominio propio (topgamerpro.com) que redirige a la foto
-      // real — así el cliente no ve el dominio técnico de Supabase en el
-      // chat, y el link sigue abriendo la imagen con un toque.
-      const message = buildWhatsAppMessage(
-        customer,
-        {
-          method,
-          reference,
-          receiptUrl: data.receiptShortUrl
-            ? data.receiptShortUrl
-            : method === "paypal"
-            ? "pago realizado vía PayPal"
-            : "pago realizado vía Binance",
-        },
-        items,
-        orderId,
-        { formatPrice: formatPriceInCurrency, formattedTotal },
-        usePoints && pointsToRedeem > 0
-          ? { points: pointsToRedeem, discountLabel: formatAmount(discountUsd) }
-          : undefined
-      );
-      const waUrl = buildWhatsAppUrl(message);
+      // El pedido YA quedó creado en la base de datos en este punto — si
+      // algo falla armando el mensaje de WhatsApp (ej. un item viejo del
+      // carrito guardado en localStorage de antes de que existiera algún
+      // campo nuevo), no puede perderse la redirección: sin este try/catch
+      // la pestaña de WhatsApp se quedaba pegada en "Confirmando tu
+      // pedido..." para siempre y el cliente nunca se enteraba de que el
+      // pedido sí se hizo.
+      let waUrl: string;
+      try {
+        // wa.me solo puede pre-llenar texto — no hay forma de adjuntar la
+        // imagen automáticamente al abrir el chat, así que en vez de decir
+        // "adjunto en este chat" (que nunca pasaba solo) se manda un link
+        // corto con dominio propio (topgamerpro.com) que redirige a la foto
+        // real — así el cliente no ve el dominio técnico de Supabase en el
+        // chat, y el link sigue abriendo la imagen con un toque.
+        const message = buildWhatsAppMessage(
+          customer,
+          {
+            method,
+            reference,
+            receiptUrl: data.receiptShortUrl
+              ? data.receiptShortUrl
+              : method === "paypal"
+              ? "pago realizado vía PayPal"
+              : "pago realizado vía Binance",
+          },
+          items,
+          orderId,
+          { formatPrice: formatPriceInCurrency, formattedTotal },
+          usePoints && pointsToRedeem > 0
+            ? { points: pointsToRedeem, discountLabel: formatAmount(discountUsd) }
+            : undefined
+        );
+        waUrl = buildWhatsAppUrl(message);
+      } catch (err) {
+        console.error("No se pudo armar el mensaje de WhatsApp:", err);
+        waUrl = buildWhatsAppUrl(
+          `¡Hola! Quiero realizar un pedido:\nOrden: #${orderId}\nCliente: ${customer.firstName} ${customer.lastName}\nWhatsApp: ${customer.phone}`
+        );
+      }
 
       clearCart();
       if (waWindow) {
@@ -417,14 +433,23 @@ export default function CheckoutForm() {
             </div>
 
             <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <h2 className="font-bold text-lg">Elige tu método de pago</h2>
                 <button
                   onClick={() => setStep(1)}
-                  className="text-xs text-brand-textMuted hover:text-white underline"
+                  className="text-xs text-brand-textMuted hover:text-white underline shrink-0"
                 >
                   Editar datos
                 </button>
+              </div>
+
+              {/* Antes solo se podía cambiar de moneda subiendo al switcher
+                  del header — acá el cliente ya está viendo los métodos de
+                  pago disponibles, así que conviene poder cambiar de
+                  Bs./USD sin salir de esta sección. */}
+              <div className="flex items-center justify-between gap-2 bg-brand-surfaceLight border border-brand-border rounded-xl px-3 py-2">
+                <span className="text-xs text-brand-textMuted">Moneda</span>
+                <CurrencySwitcher />
               </div>
 
             {availableMethods.length === 0 ? (
