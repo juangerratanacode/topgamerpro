@@ -44,6 +44,7 @@ const SETTINGS_KEY_BY_METHOD: Record<PaymentMethodId, keyof PaymentSettings> = {
 };
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+const CHECKOUT_DRAFT_KEY = "tgp_checkout_draft_v1";
 
 export default function CheckoutForm() {
   const { items, clearCart } = useCart();
@@ -98,6 +99,40 @@ export default function CheckoutForm() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [paypalOpened, setPaypalOpened] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // En algunos celulares el navegador descarga la pestaña del checkout por
+  // falta de memoria (típico si el cliente cambia de app a mitad del
+  // proceso, ej. para copiar el número de referencia del pago) y al volver
+  // la recarga de cero — el estado en memoria se pierde y el formulario
+  // aparece "reseteado" pidiendo los datos otra vez, aunque el cliente
+  // nunca los borró. Guardamos un borrador en sessionStorage para poder
+  // recuperarlo si eso pasa.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(CHECKOUT_DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.firstName) setFirstName(draft.firstName);
+      if (draft.lastName) setLastName(draft.lastName);
+      if (draft.email) setEmail(draft.email);
+      if (draft.phone) setPhone(draft.phone);
+      if (draft.step === 2) setStep(2);
+    } catch {
+      // borrador corrupto, se ignora
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        CHECKOUT_DRAFT_KEY,
+        JSON.stringify({ firstName, lastName, email, phone, step })
+      );
+    } catch {
+      // ej. modo incógnito con storage bloqueado — no es crítico
+    }
+  }, [firstName, lastName, email, phone, step]);
 
   // Si el cliente tiene sesión iniciada, le precargamos su nombre/correo
   // guardados en la cuenta para que no los vuelva a escribir — sigue
@@ -278,6 +313,11 @@ export default function CheckoutForm() {
       }
 
       clearCart();
+      try {
+        sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+      } catch {
+        // no crítico
+      }
       if (waWindow) {
         // Redirige la pestaña que ya estaba abierta — esto sí lo permiten
         // los navegadores porque la ventana ya existía.
