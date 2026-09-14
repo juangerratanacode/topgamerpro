@@ -258,7 +258,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                     : "border-brand-border bg-brand-surface hover:border-brand-textMuted"
                 )}
               >
-                <PackageIconDisplay variation={v} className="w-9 h-9 lg:w-7 lg:h-7" />
+                <PackageIconDisplay variation={v} className="w-12 h-12 lg:w-10 lg:h-10" />
                 <div className="text-xs font-semibold">{v.label}</div>
                 <div className="text-brand-green font-bold text-sm">{formatVariationPrice(v)}</div>
               </button>
