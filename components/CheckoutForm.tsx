@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useCart } from "@/lib/cartStore";
 import { usePaymentSettings, type PaymentSettings } from "@/lib/paymentSettingsStore";
@@ -53,7 +52,6 @@ export default function CheckoutForm() {
   const { settings: paymentSettings, hydrated: paymentsHydrated } = usePaymentSettings();
   const { user, session } = useAuth();
   const { points: pointsAvailable } = useAccountOrders();
-  const router = useRouter();
 
   const [usePoints, setUsePoints] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
@@ -215,23 +213,15 @@ export default function CheckoutForm() {
       return;
     }
 
-    // Abrimos la pestaña YA, antes de cualquier "await" — los navegadores
-    // (sobre todo en mobile) solo permiten window.open() sin bloqueo si
-    // pasa de forma síncrona dentro del gesto de click. Si se llama después
-    // de un fetch/await, ya "perdió" ese permiso y el popup se bloquea sin
-    // avisar. Recién le seteamos la URL real de WhatsApp cuando el mensaje
-    // está listo.
-    //
-    // Antes esto abría "about:blank" — mientras se sube la foto del
-    // comprobante y se crea el pedido (lo más lento del checkout, sobre
-    // todo con mala señal), el cliente se queda mirando ESTA pestaña
-    // nueva (el navegador le da foco a ella, no a la de checkout que sí
-    // tiene su "Procesando..."), y una pantalla en blanco sin nada da la
-    // sensación de que se rompió algo. redirigiendo.html es una página
-    // mínima con spinner + texto para que quede claro que se está
-    // procesando en vez de parecer un error.
-    const waWindow = window.open("/redirigiendo.html", "_blank");
-
+    // Antes esto abría una pestaña nueva ("redirigiendo.html") para
+    // esquivar el bloqueo de popups del navegador, y recién la redirigía a
+    // WhatsApp cuando el pedido terminaba de crearse. En algunos
+    // navegadores Android esa redirección de una pestaña controlada desde
+    // otra fallaba en silencio, y esa pestaña se quedaba con el spinner
+    // para siempre sin ningún aviso. Ahora no se abre ninguna pestaña
+    // nueva: el botón muestra "Procesando..." (ver disabled={submitting}
+    // más abajo) y, apenas el pedido está listo, esta MISMA pestaña
+    // navega directo a WhatsApp — un solo salto, sin ventanas intermedias.
     setSubmitting(true);
     try {
       const customer = { firstName, lastName, email, phone: formatPhoneE164(phone) };
@@ -270,10 +260,8 @@ export default function CheckoutForm() {
       }).finally(() => clearTimeout(timeoutId));
       const data = await res.json();
       if (!res.ok) {
-        // Cerramos la pestaña en blanco que abrimos para WhatsApp — nunca
-        // va a tener a dónde ir. El token de Turnstile es de un solo uso,
-        // así que también hay que pedir uno nuevo antes de reintentar.
-        waWindow?.close();
+        // El token de Turnstile es de un solo uso, así que hay que pedir
+        // uno nuevo antes de reintentar.
         setTurnstileToken(null);
         turnstileRef.current?.reset();
         alert(data.error ?? "No se pudo crear el pedido. Intenta de nuevo.");
@@ -328,23 +316,16 @@ export default function CheckoutForm() {
       } catch {
         // no crítico
       }
-      if (waWindow) {
-        // Redirige la pestaña que ya estaba abierta — esto sí lo permiten
-        // los navegadores porque la ventana ya existía.
-        waWindow.location.href = waUrl;
-      } else {
-        // Bloqueado igual (raro, pero pasa): mandamos la URL de WhatsApp a
-        // la página de confirmación para que el cliente tenga un botón real
-        // con el que abrirlo a mano.
-      }
-      router.push(`/pedido-confirmado?orderId=${orderId}&wa=${encodeURIComponent(waUrl)}`);
+      // Redirección directa en la misma pestaña — reemplaza la página de
+      // checkout, no abre nada nuevo. En mobile esto dispara el deep link
+      // de la app de WhatsApp; en desktop sin la app instalada abre
+      // WhatsApp Web. Si por lo que sea no llega a abrir nada, el cliente
+      // se queda en la página web de WhatsApp (wa.me), no en topgamerpro.com.
+      window.location.href = waUrl;
     } catch (err) {
       // Falla de red real (sin conexión, DNS, etc.) — no un simple !res.ok,
-      // eso ya se maneja arriba. Sin este catch, la pestaña de WhatsApp
-      // quedaba pegada en "Confirmando tu pedido..." para siempre y el
-      // cliente no se enteraba de que el pedido NO se llegó a crear.
+      // eso ya se maneja arriba.
       console.error("Error creando el pedido:", err);
-      waWindow?.close();
       setTurnstileToken(null);
       turnstileRef.current?.reset();
       const timedOut = err instanceof DOMException && err.name === "AbortError";
