@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useCart } from "@/lib/cartStore";
 import { usePaymentSettings, type PaymentSettings } from "@/lib/paymentSettingsStore";
@@ -46,12 +47,13 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const CHECKOUT_DRAFT_KEY = "tgp_checkout_draft_v1";
 
 export default function CheckoutForm() {
-  const { items, clearCart } = useCart();
+  const { items } = useCart();
   const { products } = useStorefrontProducts();
   const { rates, display } = useCurrency();
   const { settings: paymentSettings, hydrated: paymentsHydrated } = usePaymentSettings();
   const { user, session } = useAuth();
   const { points: pointsAvailable } = useAccountOrders();
+  const router = useRouter();
 
   const [usePoints, setUsePoints] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
@@ -318,18 +320,24 @@ export default function CheckoutForm() {
         );
       }
 
-      clearCart();
       try {
         sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
       } catch {
         // no crítico
       }
-      // Redirección directa en la misma pestaña — reemplaza la página de
-      // checkout, no abre nada nuevo. En mobile esto dispara el deep link
-      // de la app de WhatsApp; en desktop sin la app instalada abre
-      // WhatsApp Web. Si por lo que sea no llega a abrir nada, el cliente
-      // se queda en la página web de WhatsApp (wa.me), no en topgamerpro.com.
-      window.location.href = waUrl;
+      // El carrito se vacía en /pedido-confirmado, no acá — antes se
+      // vaciaba en este mismo instante y como esta página seguía montada
+      // un momento más (la navegación no es instantánea), el cliente veía
+      // un flash de "Tu carrito está vacío" justo antes de irse, dando
+      // sensación de error. Además, si por lo que sea la redirección a
+      // WhatsApp fallaba, el carrito ya se había perdido y no había forma
+      // de reintentar. Ahora se navega primero, con los datos del pedido
+      // ya armados, y esa pantalla es la que decide cuándo vaciarlo.
+      router.push(
+        `/pedido-confirmado?orderId=${orderId}&wa=${encodeURIComponent(waUrl)}&nombre=${encodeURIComponent(
+          `${customer.firstName} ${customer.lastName}`
+        )}&total=${encodeURIComponent(formattedTotal)}`
+      );
     } catch (err) {
       // Falla de red real (sin conexión, DNS, etc.) — no un simple !res.ok,
       // eso ya se maneja arriba.
