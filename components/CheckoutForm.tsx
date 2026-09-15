@@ -8,7 +8,7 @@ import { getCartTotalForMethod, getCartItemIcon } from "@/lib/pricing";
 import { useStorefrontProducts } from "@/lib/adminStore";
 import { validatePaymentReference } from "@/lib/validation";
 import { buildWhatsAppMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
-import { fileToDataUrl } from "@/lib/ordersStore";
+import { fileToCompressedDataUrl } from "@/lib/image";
 import { useCurrency, CURRENCY_META as CURRENCY_DISPLAY_META } from "@/lib/currencyStore";
 import { useAuth } from "@/lib/authStore";
 import { useAccountOrders } from "@/lib/useAccountOrders";
@@ -225,7 +225,15 @@ export default function CheckoutForm() {
     setSubmitting(true);
     try {
       const customer = { firstName, lastName, email, phone: formatPhoneE164(phone) };
-      const receiptDataUrl = receiptFile ? await fileToDataUrl(receiptFile) : null;
+      // Sin comprimir, una foto de comprobante sacada directo con la cámara
+      // del celular puede pesar varios MB — y esa imagen viaja dos veces
+      // por la red (del navegador al servidor, y del servidor a Supabase
+      // Storage), lo que hacía que "Procesando..." se sintiera lento
+      // incluso con buena señal. 1280px / calidad 0.8 sigue siendo de
+      // sobra legible para verificar un número de referencia.
+      const receiptDataUrl = receiptFile
+        ? await fileToCompressedDataUrl(receiptFile, { maxWidth: 1280, maxHeight: 1280, quality: 0.8 })
+        : null;
 
       // Sin esto, un fetch nunca falla solo por tardar mucho — con señal
       // débil (subiendo la foto del comprobante) el navegador puede
