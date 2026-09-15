@@ -53,18 +53,25 @@ async function getProductBySlugServer(slug: string): Promise<Product | undefined
     return undefined;
   }
 
-  const { data: row, error } = await supabase
-    .from("products")
-    .select("*, product_variations(*)")
-    .eq("slug", slug)
-    .maybeSingle();
+  // Un blip de red momentáneo entre Vercel y Supabase (pasa de vez en
+  // cuando, sobre todo en cold starts) ya no se disfraza de catálogo
+  // falso, pero tampoco debería mandarle a un cliente real la pantalla de
+  // "no encontramos este juego" por un simple hipo — se reintenta una vez
+  // antes de darlo por perdido.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { data: row, error } = await supabase
+      .from("products")
+      .select("*, product_variations(*)")
+      .eq("slug", slug)
+      .maybeSingle();
 
-  if (error) {
-    console.error(`Error cargando el producto "${slug}" desde Supabase:`, error.message);
-    return undefined;
+    if (!error) return row ? mapProductRow(row) : undefined;
+
+    console.error(`Error cargando el producto "${slug}" desde Supabase (intento ${attempt}):`, error.message);
+    if (attempt === 1) await new Promise((resolve) => setTimeout(resolve, 300));
   }
 
-  return row ? mapProductRow(row) : undefined;
+  return undefined;
 }
 
 async function getRelatedProducts(slugs: string[]): Promise<Product[]> {

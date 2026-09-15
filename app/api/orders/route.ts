@@ -11,6 +11,11 @@ import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import type { CartItem, CustomerInfo, Currency, PaymentMethodId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+// Por defecto Vercel corta la función a los 10s — menos de lo que puede
+// tardar en el peor caso (Turnstile + Auth + subir el comprobante + varias
+// consultas a la base). Sin esto, el límite de 20s de Promise.race de acá
+// abajo nunca llegaría a dispararse: Vercel mataría la función antes.
+export const maxDuration = 25;
 
 interface CreateOrderBody {
   customer: CustomerInfo;
@@ -25,7 +30,69 @@ interface CreateOrderBody {
 
 // Crea un pedido nuevo: sube el comprobante (si vino) a Storage y guarda
 // la orden + sus líneas en Supabase.
+//
+// Ninguna de las llamadas de acá abajo (verificar el token de sesión con
+// Supabase Auth, el captcha con Cloudflare, subir la foto, insertar en la
+// base) tiene límite de tiempo propio — si cualquiera de esos servicios
+// externos se cuelga, ANTES la función entera se quedaba esperando sin
+// límite y el navegador del cliente nunca recibía nada (ni error ni
+// éxito), sin importar su conexión: la pestaña de WhatsApp se quedaba
+// pegada en "Confirmando tu pedido..." para siempre. Con Promise.race
+// acá se garantiza una respuesta dentro de 20s pase lo que pase.
 export async function POST(req: NextRequest) {
+  try {
+    return await Promise.race([
+      handleCreateOrder(req),
+      new Promise<NextResponse>((resolve) =>
+        setTimeout(
+          () =>
+            resolve(
+              NextResponse.json(
+                { error: "El pedido está tardando demasiado en procesarse. Intenta de nuevo." },
+                { status: 504 }
+              )
+            ),
+          20000
+        )
+      ),
+    ]);
+  } catch (err) {
+    console.error("Error inesperado creando el pedido:", err);
+    return NextResponse.json({ error: "No se pudo crear el pedido. Intenta de nuevo." }, { status: 500 });
+  }
+}
+
+// Sube el comprobante (si vino) a Storage — separado de handleCreateOrder
+// para poder arrancarlo en paralelo con la validación de precios y de
+// sesión, en vez de esperar a que esas dos terminen primero.
+async function uploadReceipt(
+  receiptDataUrl: string | null | undefined
+): Promise<{ receiptUrl: string | null; receiptShortUrl: string | null }> {
+  if (!supabaseAdmin || !receiptDataUrl) return { receiptUrl: null, receiptShortUrl: null };
+
+  const match = receiptDataUrl.match(/^data:(.+);base64,(.+)$/);
+  if (!match) return { receiptUrl: null, receiptShortUrl: null };
+
+  const [, mime, base64] = match;
+  const ext = mime.split("/")[1] || "png";
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const buffer = Buffer.from(base64, "base64");
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from("receipts")
+    .upload(path, buffer, { contentType: mime, upsert: false, cacheControl: "31536000" });
+
+  if (uploadError) return { receiptUrl: null, receiptShortUrl: null };
+
+  const { data: publicUrl } = supabaseAdmin.storage.from("receipts").getPublicUrl(path);
+  return {
+    receiptUrl: publicUrl.publicUrl,
+    // Link con marca propia para el mensaje de WhatsApp — evita mostrarle
+    // al cliente el dominio técnico de Supabase en el chat.
+    receiptShortUrl: `https://www.topgamerpro.com/api/r/${path}`,
+  };
+}
+
+async function handleCreateOrder(req: NextRequest): Promise<NextResponse> {
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase no configurado" }, { status: 500 });
 
   const body = (await req.json()) as CreateOrderBody;
@@ -35,6 +102,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "El carrito está vacío." }, { status: 400 });
   }
 
+  // Antes esto y las dos llamadas de más abajo (validar la sesión, subir
+  // el comprobante) se esperaban una por una aunque ninguna depende del
+  // resultado de la otra — cada round-trip a Supabase se sumaba al
+  // siguiente en vez de correr al mismo tiempo, y eso era justo lo que
+  // hacía que el salto a WhatsApp se sintiera lento incluso cuando todo
+  // funcionaba bien. Ahora corren en paralelo.
+  const variationIds = [...new Set(items.map((i) => i.variationId).filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
+  const authHeader = req.headers.get("authorization");
+  const authToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  const [variationsResult, userResult, receiptResult] = await Promise.all([
+    supabaseAdmin
+      .from("product_variations")
+      .select("id, price_usd, price_usd_paypal")
+      .in("id", variationIds.length > 0 ? variationIds : ["00000000-0000-0000-0000-000000000000"]),
+    authToken ? supabaseAdmin.auth.getUser(authToken) : Promise.resolve(null),
+    uploadReceipt(payment.receiptDataUrl),
+  ]);
+
+  const { data: realVariations, error: variationsError } = variationsResult;
+  // Si el cliente tiene sesión iniciada, el front manda el access token en
+  // el header Authorization — lo verificamos acá (nunca confiamos en un
+  // user_id que venga en el body) para vincular el pedido a su cuenta y
+  // que sume puntos e historial en /mi-cuenta. Si no hay token, o no es
+  // válido, el pedido sigue como invitado (user_id null) sin romper el
+  // checkout.
+  const userId: string | null = userResult?.data.user?.id ?? null;
+  const { receiptUrl, receiptShortUrl } = receiptResult;
+
   // Nunca se confía en item.unitPriceUsd/unitPriceUsdPaypal ni en el total
   // que manda el navegador — hasta acá se podía crear un pedido con
   // cualquier precio inventado (ej. $0.01) que después alguien con acceso
@@ -42,12 +138,6 @@ export async function POST(req: NextRequest) {
   // podía autoconfirmar. Se recalcula todo desde los precios reales
   // guardados en product_variations, y solo se acepta el pedido si CADA
   // línea corresponde a un paquete real que sigue existiendo.
-  const variationIds = [...new Set(items.map((i) => i.variationId).filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
-  const { data: realVariations, error: variationsError } = await supabaseAdmin
-    .from("product_variations")
-    .select("id, price_usd, price_usd_paypal")
-    .in("id", variationIds.length > 0 ? variationIds : ["00000000-0000-0000-0000-000000000000"]);
-
   if (variationsError) {
     return NextResponse.json({ error: variationsError.message }, { status: 500 });
   }
@@ -80,20 +170,6 @@ export async function POST(req: NextRequest) {
   const impliedRate =
     body.totalUsd > 0 && clientTotalConverted != null ? clientTotalConverted / body.totalUsd : null;
   const totalConverted = impliedRate != null ? totalUsd * impliedRate : undefined;
-
-  // Si el cliente tiene sesión iniciada, el front manda el access token en
-  // el header Authorization — lo verificamos acá (nunca confiamos en un
-  // user_id que venga en el body) para vincular el pedido a su cuenta y
-  // que sume puntos e historial en /mi-cuenta. Si no hay token, o no es
-  // válido, el pedido sigue como invitado (user_id null) sin romper el
-  // checkout.
-  let userId: string | null = null;
-  const authHeader = req.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    const { data } = await supabaseAdmin.auth.getUser(token);
-    userId = data.user?.id ?? null;
-  }
 
   // Anti-abuso: a un cliente con sesión no se le vuelve a pedir Turnstile
   // (ya lo resolvió una vez al crear la cuenta) — solo a invitados, que son
@@ -143,28 +219,6 @@ export async function POST(req: NextRequest) {
   const discountRatio = totalUsd > 0 ? finalTotalUsd / totalUsd : 1;
   const finalTotalConverted =
     totalConverted != null ? totalConverted * discountRatio : undefined;
-
-  let receiptUrl: string | null = null;
-  let receiptShortUrl: string | null = null;
-  if (payment.receiptDataUrl) {
-    const match = payment.receiptDataUrl.match(/^data:(.+);base64,(.+)$/);
-    if (match) {
-      const [, mime, base64] = match;
-      const ext = mime.split("/")[1] || "png";
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const buffer = Buffer.from(base64, "base64");
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("receipts")
-        .upload(path, buffer, { contentType: mime, upsert: false, cacheControl: "31536000" });
-      if (!uploadError) {
-        const { data: publicUrl } = supabaseAdmin.storage.from("receipts").getPublicUrl(path);
-        receiptUrl = publicUrl.publicUrl;
-        // Link con marca propia para el mensaje de WhatsApp — evita mostrarle
-        // al cliente el dominio técnico de Supabase en el chat.
-        receiptShortUrl = `https://www.topgamerpro.com/api/r/${path}`;
-      }
-    }
-  }
 
   const { data: order, error: orderError } = await supabaseAdmin
     .from("orders")

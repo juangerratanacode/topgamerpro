@@ -32,15 +32,24 @@ async function fetchProductsServer(): Promise<Product[]> {
     console.error("Supabase no está configurado — no se puede cargar el catálogo.");
     return [];
   }
-  const { data: rows, error } = await supabase
-    .from("products")
-    .select("*, product_variations(*)")
-    .order("sort_order", { ascending: true })
-    .order("sort_order", { referencedTable: "product_variations", ascending: true });
 
-  if (error) {
-    console.error("Error cargando el catálogo desde Supabase:", error.message);
-    return [];
+  // Un blip de red momentáneo entre Vercel y Supabase no debería vaciar el
+  // catálogo del home para un cliente real — se reintenta una vez antes de
+  // rendirse. Mismo patrón que app/productos/[slug]/page.tsx.
+  let rows: any[] | null = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*, product_variations(*)")
+      .order("sort_order", { ascending: true })
+      .order("sort_order", { referencedTable: "product_variations", ascending: true });
+
+    if (!error) {
+      rows = data;
+      break;
+    }
+    console.error(`Error cargando el catálogo desde Supabase (intento ${attempt}):`, error.message);
+    if (attempt === 1) await new Promise((resolve) => setTimeout(resolve, 300));
   }
   if (!rows || rows.length === 0) return [];
 

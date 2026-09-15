@@ -237,6 +237,15 @@ export default function CheckoutForm() {
       const customer = { firstName, lastName, email, phone: formatPhoneE164(phone) };
       const receiptDataUrl = receiptFile ? await fileToDataUrl(receiptFile) : null;
 
+      // Sin esto, un fetch nunca falla solo por tardar mucho — con señal
+      // débil (subiendo la foto del comprobante) el navegador puede
+      // quedarse esperando la respuesta sin límite, y como nunca llega a
+      // rechazar la promesa, el catch de abajo nunca se dispara: la
+      // pestaña de WhatsApp se queda pegada en "Confirmando tu pedido..."
+      // de verdad, no solo un rato.
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), 30000);
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: {
@@ -257,7 +266,8 @@ export default function CheckoutForm() {
           pointsRedeemed: usePoints ? pointsToRedeem : 0,
           turnstileToken: needsTurnstile ? turnstileToken : undefined,
         }),
-      });
+        signal: timeoutController.signal,
+      }).finally(() => clearTimeout(timeoutId));
       const data = await res.json();
       if (!res.ok) {
         // Cerramos la pestaña en blanco que abrimos para WhatsApp — nunca
@@ -337,7 +347,12 @@ export default function CheckoutForm() {
       waWindow?.close();
       setTurnstileToken(null);
       turnstileRef.current?.reset();
-      alert("No se pudo crear el pedido — revisa tu conexión e intenta de nuevo.");
+      const timedOut = err instanceof DOMException && err.name === "AbortError";
+      alert(
+        timedOut
+          ? "Tu conexión está muy lenta y no pudimos confirmar el pedido a tiempo. Revisa tu señal e intenta de nuevo."
+          : "No se pudo crear el pedido — revisa tu conexión e intenta de nuevo."
+      );
     } finally {
       setSubmitting(false);
     }
