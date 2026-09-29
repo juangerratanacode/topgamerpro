@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import HowToRechargeModal from "./HowToRechargeModal";
+import VideoTutorialModal from "./VideoTutorialModal";
+
+// Short de YouTube con el paso a paso general de cómo recargar —
+// https://youtube.com/shorts/gYIzUctPEbA
+const HOW_TO_RECHARGE_VIDEO_ID = "gYIzUctPEbA";
 
 // Botón flotante fijo que abre el modal de "cómo recargar" (antes navegaba
 // a /como-recargar, que sigue existiendo como página de contenido/SEO pero
@@ -63,7 +67,12 @@ export default function FloatingHelpButton() {
         )}
       </AnimatePresence>
 
-      <HowToRechargeModal open={open} onClose={() => setOpen(false)} />
+      <VideoTutorialModal
+        open={open}
+        onClose={() => setOpen(false)}
+        videoId={HOW_TO_RECHARGE_VIDEO_ID}
+        title="Cómo recargar tu juego"
+      />
     </>
   );
 }
