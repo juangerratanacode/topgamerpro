@@ -47,7 +47,7 @@ export default function VideoTutorialModal({ open, onClose, videoId, title }: Vi
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-xs sm:max-w-sm bg-brand-surface border border-brand-border rounded-2xl overflow-hidden flex flex-col max-h-[calc(100vh-2rem)]"
+            className="relative w-full max-w-sm sm:max-w-md md:max-w-xl bg-brand-surface border border-brand-border rounded-2xl overflow-hidden flex flex-col max-h-[calc(100vh-2rem)]"
           >
             {/* Encabezado con marca — mismo degradado de header/franjas de
                 marca que ya se usa en otros lados del sitio. */}
@@ -70,8 +70,11 @@ export default function VideoTutorialModal({ open, onClose, videoId, title }: Vi
               {/* aspect-[9/16]: el video es un Short (formato vertical) —
                   con aspect-video (16:9) quedaría aplastado con barras
                   negras enormes arriba/abajo. Centrado y con un ancho
-                  máximo para que no se estire de más en pantallas anchas. */}
-              <div className="aspect-[9/16] w-full max-w-[260px] mx-auto rounded-xl overflow-hidden bg-black">
+                  máximo para que no se estire de más en pantallas anchas.
+                  340px de ancho (antes 260px) ya da ~600px de alto a 9:16 —
+                  más de eso y el modal deja de entrar completo en una
+                  laptop estándar (1366x768) sin scroll. */}
+              <div className="aspect-[9/16] w-full max-w-[340px] mx-auto rounded-xl overflow-hidden bg-black">
                 {open && (
                   <iframe
                     key={videoId}
