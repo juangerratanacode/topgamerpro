@@ -5,15 +5,15 @@
 // centrado respecto al viewport) + overlay que cierra al click + bloqueo de
 // scroll del body mientras está abierto.
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-const VIDEO_SRC = "/videos/como-recargar.mp4";
+// Short de YouTube con el paso a paso general de cómo recargar —
+// https://youtube.com/shorts/gYIzUctPEbA
+const VIDEO_ID = "gYIzUctPEbA";
 
 export default function HowToRechargeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [videoError, setVideoError] = useState(false);
-
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -21,12 +21,6 @@ export default function HowToRechargeModal({ open, onClose }: { open: boolean; o
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
-
-  // Reintenta el video la próxima vez que se abra el modal (por si ya
-  // subiste public/videos/como-recargar.mp4 después de un primer fallo).
-  useEffect(() => {
-    if (open) setVideoError(false);
   }, [open]);
 
   if (typeof document === "undefined") return null;
@@ -67,26 +61,29 @@ export default function HowToRechargeModal({ open, onClose }: { open: boolean; o
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-5">
-              {videoError ? (
-                <div className="aspect-video w-full rounded-xl bg-brand-surfaceLight border border-brand-border flex flex-col items-center justify-center gap-2 text-brand-textMuted">
-                  <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                    <path d="M10 9.5v5l4-2.5-4-2.5z" fill="currentColor" stroke="none" />
-                  </svg>
-                  <p className="text-sm font-semibold">Video próximamente</p>
-                </div>
-              ) : (
-                // Cuando subas el archivo real a public/videos/como-recargar.mp4
-                // este <video> lo va a servir automáticamente, sin tocar código.
-                <video
-                  key={open ? "open" : "closed"}
-                  controls
-                  className="w-full aspect-video rounded-xl bg-black"
-                  onError={() => setVideoError(true)}
-                >
-                  <source src={VIDEO_SRC} type="video/mp4" />
-                </video>
-              )}
+              {/* aspect-[9/16]: es un Short (formato vertical) — con
+                  aspect-video (16:9) quedaría aplastado con barras negras
+                  enormes arriba/abajo. Centrado y con un ancho máximo para
+                  que no se estire de más en pantallas anchas, mismo
+                  criterio que VideoTutorialModal.tsx (popup de Call of
+                  Duty Mobile). */}
+              <div className="aspect-[9/16] w-full max-w-[280px] mx-auto rounded-xl overflow-hidden bg-black">
+                {open && (
+                  <iframe
+                    key={VIDEO_ID}
+                    // modestbranding/rel/iv_load_policy: minimizan la marca
+                    // de YouTube (logo, sugeridos de otros canales,
+                    // anotaciones) — el nombre del canal del creador puede
+                    // seguir apareciendo un instante al iniciar, eso ya no
+                    // lo controla el embed, es política de YouTube.
+                    src={`https://www.youtube.com/embed/${VIDEO_ID}?modestbranding=1&rel=0&iv_load_policy=3`}
+                    title="Cómo recargar tu juego"
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                )}
+              </div>
             </div>
           </motion.div>
         </motion.div>
