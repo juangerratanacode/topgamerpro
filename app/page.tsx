@@ -12,7 +12,14 @@ import { getHomeData } from "@/lib/homeData.server";
 // servidor — no hay useEffect, no hay fetch en el navegador, no hay
 // pantalla en blanco esperando JS. El banner y el catálogo llegan juntos,
 // en el orden en que están escritos acá abajo.
-export const revalidate = 0;
+//
+// revalidate = 30 (antes 0): con 0, CADA visita esperaba a Supabase antes
+// de poder mandar el HTML — la causa real de la pantalla negra al navegar
+// al home. Con 30, Vercel sirve la versión ya cacheada al instante y la
+// revalida sola en segundo plano (ISR); lib/supabaseClient.ts usa el mismo
+// número para que el fetch interno de supabase-js respete esta ventana en
+// vez de ignorarla.
+export const revalidate = 30;
 
 export default async function HomePage() {
   const { banners, products } = await getHomeData();

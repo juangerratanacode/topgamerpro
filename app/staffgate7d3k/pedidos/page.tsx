@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { useOrders, type OrderStatus } from "@/lib/ordersStore";
 import clsx from "clsx";
 
@@ -143,9 +144,11 @@ export default function PedidosPage() {
               <div>
                 {order.payment.receiptDataUrl ? (
                   <a href={order.payment.receiptDataUrl} target="_blank" rel="noopener noreferrer">
-                    <img
+                    <Image
                       src={order.payment.receiptDataUrl}
                       alt="Comprobante"
+                      width={112}
+                      height={112}
                       className="w-28 h-28 object-cover rounded-lg border border-brand-border hover:border-brand-primary transition-colors"
                     />
                   </a>

@@ -445,10 +445,11 @@ export default function AdminPage() {
                           >
                             <label className="relative shrink-0 cursor-pointer group">
                               {product.deviceIcons?.[deviceId] ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
+                                <Image
                                   src={product.deviceIcons[deviceId]}
                                   alt=""
+                                  width={40}
+                                  height={40}
                                   className="w-10 h-10 rounded-md border border-brand-border object-cover"
                                 />
                               ) : (

@@ -3,11 +3,19 @@ import type { Metadata } from "next";
 import ProductDetailClient from "@/components/ProductDetailClient";
 import ProductReviews from "@/components/ProductReviews";
 import RelatedProducts from "@/components/RelatedProducts";
-import { supabase } from "@/lib/supabaseClient";
+// Cliente dedicado con ISR (30s) en vez de no-store — ver el comentario en
+// lib/supabasePublicServer.ts.
+import { supabasePublicServer as supabase } from "@/lib/supabasePublicServer";
 import { dedupeVariations } from "@/lib/productUtils";
 import type { Product } from "@/lib/types";
 
-export const revalidate = 0;
+// 30 (antes 0): revalidate=0 bloqueaba CADA visita a una página de
+// producto esperando la respuesta de Supabase — la causa real de la
+// pantalla negra al navegar entre juegos. Con ISR, Vercel sirve la versión
+// ya cacheada al instante y la revalida sola en segundo plano; mismo
+// número que lib/supabasePublicServer.ts usa en su fetch interno, para que
+// ambos respeten la misma ventana de 30s en vez de pisarse.
+export const revalidate = 30;
 
 function mapProductRow(row: any): Product {
   return {

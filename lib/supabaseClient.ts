@@ -10,15 +10,20 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-// Este cliente se usa tanto en el navegador como en Server Components
-// (ej. app/productos/[slug]/page.tsx). En el servidor, `revalidate = 0`
-// en la página NO alcanza para forzar que las llamadas fetch INTERNAS de
+// Este cliente se usa tanto en el navegador (hooks como bannersStore.ts,
+// auth) como en Server Components. En el servidor, `revalidate = 0` en la
+// página NO alcanza para forzar que las llamadas fetch INTERNAS de
 // supabase-js se salten el Data Cache de Vercel/Next — ya nos pasó
 // exactamente esto mismo con el admin (ver lib/supabaseAdmin.ts) y volvió
 // a pasar acá: la página de un producto seguía mostrando la descripción
 // vieja de hace varias ediciones atrás aunque la base de datos ya tuviera
 // la nueva. Se fuerza `cache: "no-store"` directo en el fetch, sin
 // depender de que Next lo infiera.
+//
+// Para las páginas públicas de home/producto, que SÍ pueden convivir con
+// datos con hasta 30s de atraso a cambio de no bloquear cada visita, se
+// usa en cambio lib/supabasePublicServer.ts — un cliente aparte, para no
+// tocar el comportamiento de este (auth, hooks del navegador) en nada.
 const noStoreFetch: typeof fetch = (input, init) => fetch(input, { ...init, cache: "no-store" });
 
 // Evita que el build truene si todavía no hay variables de entorno.

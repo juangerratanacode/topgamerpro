@@ -4,7 +4,10 @@
 // HTML: cero pantalla en blanco, cero "aparece uno antes que el otro",
 // cero petición en cascada desde el cliente.
 
-import { supabase } from "./supabaseClient";
+// Cliente dedicado con ISR (30s) en vez de no-store — ver el comentario en
+// lib/supabasePublicServer.ts. Esto es justo lo que hace que el home no
+// bloquee cada visita esperando a Supabase.
+import { supabasePublicServer as supabase } from "./supabasePublicServer";
 import { DEFAULT_BANNERS, type Banner } from "./bannersStore";
 import type { Product } from "./types";
 

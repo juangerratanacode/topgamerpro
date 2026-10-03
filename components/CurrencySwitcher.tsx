@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useCurrency, CURRENCY_META } from "@/lib/currencyStore";
 import { usePaymentSettings } from "@/lib/paymentSettingsStore";
 import type { Currency } from "@/lib/types";
@@ -23,8 +24,7 @@ function CurrencyIcon({ c, className }: { c: Currency; className?: string }) {
   // que la bandera genérica de EE.UU.
   if (c === "USD") {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="/binance-icon.png" alt="" className={className ?? "w-4 h-4"} />
+      <Image src="/binance-icon.png" alt="" width={16} height={16} className={className ?? "w-4 h-4"} />
     );
   }
   return <span>{CURRENCY_META[c].flag}</span>;
