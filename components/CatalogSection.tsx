@@ -24,8 +24,9 @@ interface CatalogSectionProps {
 
 export default function CatalogSection({ products: productsProp, hydrated: hydratedProp }: CatalogSectionProps = {}) {
   // Igual patrón que HeroSlider: si el home ya trajo los datos
-  // sincronizados, los usamos; si no, se autoabastece.
-  const own = useStorefrontProducts();
+  // sincronizados, los usamos; si no, se autoabastece. `skip` evita que el
+  // hook dispare su propio fetch (duplicado) cuando ya vinieron por props.
+  const own = useStorefrontProducts(productsProp !== undefined);
   const products = productsProp ?? own.products;
   const hydrated = hydratedProp ?? own.hydrated;
   const [active, setActive] = useState<GameGenre | "all">("all");

@@ -54,8 +54,8 @@ interface HeroSliderProps {
 export default function HeroSlider({ banners: bannersProp, hydrated: hydratedProp }: HeroSliderProps = {}) {
   // Si el padre (home) ya trajo los datos sincronizados con el catálogo,
   // los usamos tal cual; si no, este componente se las arregla solo (ej.
-  // si se usa suelto en otra página).
-  const own = useBanners();
+  // si se usa suelto en otra página). `skip` evita el fetch duplicado.
+  const own = useBanners(bannersProp !== undefined);
   const banners = bannersProp ?? own.banners;
   const hydrated = hydratedProp ?? own.hydrated;
   const [index, setIndex] = useState(0);

@@ -377,7 +377,14 @@ export function useAdminProducts() {
 // Lee el mismo catálogo que edita el admin — así cualquier cambio que
 // hagas en /admin/catalogo (ícono, precio, descripción, juego nuevo) se
 // ve reflejado de inmediato en la tienda, sin duplicar datos.
-export function useStorefrontProducts() {
+// `skip`: true cuando quien llama (ej. CatalogSection en el home) ya
+// recibió el catálogo resuelto por el servidor vía props — un hook SIEMPRE
+// se ejecuta aunque su resultado no se use, así que sin esto, cada visita
+// al home disparaba una segunda consulta completa (products +
+// product_variations) desde el navegador, duplicando exactamente la
+// misma carga que ya había hecho el servidor un instante antes. Con
+// `skip`, el fetch ni se intenta.
+export function useStorefrontProducts(skip = false) {
   // Arranca vacío, nunca con los datos de muestra — antes de que Supabase
   // responda, "hydrated" en false es la señal para que quien consume este
   // hook muestre un esqueleto de carga en vez de datos falsos.
@@ -385,6 +392,7 @@ export function useStorefrontProducts() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    if (skip) return;
     let cancelled = false;
 
     async function load() {
@@ -401,7 +409,7 @@ export function useStorefrontProducts() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [skip]);
 
   return { products, hydrated };
 }

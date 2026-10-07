@@ -73,18 +73,23 @@ function newId() {
   return `banner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function useBanners() {
+// `skip`: true cuando quien llama (HeroSlider en el home) ya recibió los
+// banners resueltos por el servidor vía props — sin esto, cada visita al
+// home disparaba una segunda consulta a `banners` desde el navegador,
+// duplicando la que ya había hecho el servidor un instante antes.
+export function useBanners(skip = false) {
   const [banners, setBanners] = useState<Banner[]>(DEFAULT_BANNERS);
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (skip) return;
     fetchBanners().then((b) => {
       setBanners(b);
       setHydrated(true);
     });
-  }, []);
+  }, [skip]);
 
   const save = useCallback(async () => {
     setSaving(true);
