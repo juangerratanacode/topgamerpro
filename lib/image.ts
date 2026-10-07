@@ -8,6 +8,18 @@ import { adminFetch } from "./adminFetch";
 // el navegador), así que subir una foto de cámara/celular sin comprimir
 // puede llenarlo de una sola vez (QuotaExceededError). Esta función
 // redimensiona y comprime la imagen en el navegador antes de guardarla.
+// Revisa 1 de cada 97 píxeles buscando alpha < 255 — alcanza para detectar
+// transparencia real sin tener que escanear la imagen entera (lento en
+// fotos grandes). El 97 es a propósito un número raro (no múltiplo de
+// anchos/altos comunes) para no pisar siempre la misma columna de píxeles.
+function hasRealTransparency(ctx: CanvasRenderingContext2D, width: number, height: number): boolean {
+  const { data } = ctx.getImageData(0, 0, width, height);
+  for (let i = 3; i < data.length; i += 4 * 97) {
+    if (data[i] < 255) return true;
+  }
+  return false;
+}
+
 export function fileToCompressedDataUrl(
   file: File,
   { maxWidth = 1600, maxHeight = 1600, quality = 0.82 }: { maxWidth?: number; maxHeight?: number; quality?: number } = {}
@@ -34,9 +46,16 @@ export function fileToCompressedDataUrl(
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        // PNG con transparencia se mantiene en PNG (para logos/íconos);
-        // fotos normales se comprimen como JPEG, mucho más liviano.
-        const isPng = file.type === "image/png";
+        // Antes esto decidía PNG vs JPEG solo mirando el tipo de archivo
+        // ORIGINAL — una captura de pantalla de un comprobante de pago o
+        // una foto de banner guardada como PNG (muy común, sobre todo
+        // capturas de apps bancarias en Android) se quedaba casi sin
+        // comprimir (1-3MB+) aunque no tuviera ni un píxel transparente.
+        // Con pocos pedidos eso igual alcanzó para pasarse el límite de
+        // egress del plan gratis de Supabase. Ahora se revisa si la
+        // imagen tiene transparencia DE VERDAD — si no la tiene, se
+        // comprime como JPEG sin importar el formato original.
+        const isPng = file.type === "image/png" && hasRealTransparency(ctx, width, height);
         resolve(canvas.toDataURL(isPng ? "image/png" : "image/jpeg", quality));
       };
       img.src = reader.result as string;

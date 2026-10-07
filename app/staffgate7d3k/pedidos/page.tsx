@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { useOrders, type OrderStatus } from "@/lib/ordersStore";
 import clsx from "clsx";
 
@@ -143,14 +142,25 @@ export default function PedidosPage() {
 
               <div>
                 {order.payment.receiptDataUrl ? (
-                  <a href={order.payment.receiptDataUrl} target="_blank" rel="noopener noreferrer">
-                    <Image
-                      src={order.payment.receiptDataUrl}
-                      alt="Comprobante"
-                      width={112}
-                      height={112}
-                      className="w-28 h-28 object-cover rounded-lg border border-brand-border hover:border-brand-primary transition-colors"
-                    />
+                  // Antes esto mostraba la miniatura YA cargada (next/image
+                  // con unoptimized:true sirve el archivo entero, no una
+                  // versión chica) — con 46+ pedidos y creciendo, cada vez
+                  // que se abría esta página se descargaban TODOS los
+                  // comprobantes de una, se hayan ido a mirar o no. Clic
+                  // acá igual abría el mismo archivo en una pestaña nueva,
+                  // así que la miniatura era trabajo duplicado. Ahora no
+                  // se descarga nada hasta que el admin toque el botón.
+                  <a
+                    href={order.payment.receiptDataUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-28 h-28 rounded-lg border border-brand-border hover:border-brand-primary transition-colors flex flex-col items-center justify-center gap-1.5 text-brand-textMuted hover:text-brand-primary"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="4" y="3" width="16" height="18" rx="2" />
+                      <path d="M8 8h8M8 12h8M8 16h5" />
+                    </svg>
+                    <span className="text-[11px] font-semibold text-center px-1">Ver comprobante</span>
                   </a>
                 ) : (
                   <span className="text-xs text-brand-textMuted">Sin comprobante</span>

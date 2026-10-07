@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Poppins } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -81,6 +82,7 @@ export default function RootLayout({
               <Footer />
               <FloatingHelpButton />
               <ServiceWorkerRegister />
+              <Analytics />
             </CartProvider>
           </CurrencyProvider>
         </AuthProvider>
